@@ -1,8 +1,9 @@
 import pygame
+import functions_extras
 
-pygame.init()
-screen = pygame.display.set_mode((1280, 720))
-clock = pygame.time.Clock()
+screen  = pygame.display.set_mode((1280, 720))
+screen.fill("purple")
+pygame.display.set_caption("1869AC")
 running = True
 
 while running:
@@ -10,8 +11,8 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    screen.fill("blue")
+    functions_extras.button(screen, 100, 40, 440, 440)
+    functions_extras.button(screen, 100, 40, 300, 300)
     pygame.display.flip()
-    clock.tick(60)
 
 pygame.quit()

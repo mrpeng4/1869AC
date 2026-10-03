@@ -8,7 +8,7 @@
 
 - **Music Importer:** Scans any directory on your computer for audio files (`.mp3`, `.wav`, `.flac`, `.m4a`, `.ogg`) and saves them as custom named playlists.
   
-- **Interactive Startup Menu:** Displays available playlists on launch for quick selection.
+- **Startup Menu:** Displays available playlists on launch for quick selection.
   
 - **Track Navigation:** Next (`m`) and previous (`n`) song controls with history shuffle memory.
   
@@ -19,6 +19,12 @@
 - **Terminal UI Dashboard:** Renders a progress timeline bar, current date/clock, elapsed vs. total time, and an animated vinyl indicator.
   
 - **Clean Console Output:** Automatically suppresses low-level VLC stderr logging to preserve terminal clean-ups.
+
+- **Loop functionality:** loop key (`e`) can switch between single song loop and continue playlist.
+  
+- **Playlist importer:** by putting the path of the directory where all your songs are stored it automatically reads and save it to a .py file and then reads it for you and plays the music live from the folder and saves it as a playlist witch you can switch between.
+
+- **Playlist selector:** select and choose between your favorite playlists.
 
 ---
 
@@ -36,6 +42,8 @@
 | **`s`** | Toggle Shuffle Mode|
 | **`e`** | Toggle Repeat Mode (Auto / Single Loop) (doesn't work for now, just the symbol changes)|
 | **`q`** | Quit Player
+| **`c`** | Import new music folder as playlist
+| **`x`** | Open Playlist Switcher menu
 
 ---
 
@@ -61,3 +69,9 @@ brew install ac1869
 - macOS only for now
 - Requires Homebrew and VLC
 - Your playlists are stored in `~/Library/Application Support/1869AC/` and are never overwritten by updates
+
+### Update (if already using a previous version)
+```
+brew update
+brew upgrade ac1869
+```

@@ -5,9 +5,10 @@ import termios
 import tty
 import vlc
 import datetime
-from pathlib import Path
 from pygame import mixer
 import random
+from import_system import append_folder_to_songs_path
+import songs_path
 
 class UiWidgets:
 
@@ -33,8 +34,11 @@ class UiWidgets:
         self.shuffled_song_list = []
         self.loop_type = "auto"
         self.loop_type_symbol = "↬"
+        self.previous_vol_lvl = 0
+        self.mute_on_off = False
+        self.playlist_added = False
+        self.old_settings = None
 
-    # _________this snippet is made by AI sorry my brain was not braining__________
     def check_key_presses(self):
         if select.select([sys.stdin], [], [], 0)[0]:
             key = sys.stdin.read(1)
@@ -46,13 +50,12 @@ class UiWidgets:
                     return 'LEFT'
             return key
         return None
-    # _____________________________________________________________________________
-
 
     def loop_for_song(self, player, song_time, playlist, current_index):
 
-        old_settings = termios.tcgetattr(sys.stdin)
+        self.old_settings = termios.tcgetattr(sys.stdin)
         tty.setcbreak(sys.stdin.fileno())
+        termios.tcflush(sys.stdin, termios.TCIFLUSH)
         print("\033[?25l", end="")
 
         try:
@@ -60,10 +63,10 @@ class UiWidgets:
                 self.now_real_time = datetime.datetime.now().strftime("%d %b %Y %I:%M")
                 self.play_pause = "⏸"
                 key = self.check_key_presses()
-                if key:
 
+                if key:
                     if key in (' ',"k"):
-                        self.play_pause = "▶"# Space = Pause/Play
+                        self.play_pause = "▶"
                         self.click_sound.play()
                         player.pause()
 
@@ -83,14 +86,14 @@ class UiWidgets:
                         if self.volume_level < 10:
                             self.click_sound.play()
                             self.volume_level += 1
-                            self.volume_list = ["⏹"] * self.volume_level + [" "] * (10 - self.volume_level)
+                            self.update_volume_bar()
                             player.audio_set_volume(self.volume_level * 10)
 
                     elif key == "o":
                         if self.volume_level > 0:
                             self.click_sound.play()
                             self.volume_level -= 1
-                            self.volume_list = ["⏹"] * self.volume_level + [" "] * (10 - self.volume_level)
+                            self.update_volume_bar()
                             player.audio_set_volume(self.volume_level * 10)
 
                     elif key == "s":
@@ -124,6 +127,35 @@ class UiWidgets:
                         self.render(song_time)
                         break
 
+                    elif key == '0':
+                        if not self.mute_on_off:
+                            self.click_sound.play()
+                            self.previous_vol_lvl = self.volume_level
+                            self.volume_level = 0
+                            self.update_volume_bar()
+                            player.audio_set_volume(self.volume_level * 10)
+                            self.mute_on_off = True
+                        else:
+                            self.click_sound.play()
+                            self.volume_level = self.previous_vol_lvl
+                            self.update_volume_bar()
+                            player.audio_set_volume(self.volume_level * 10)
+                            self.mute_on_off = False
+
+                    elif key == "c":
+                        player.pause()
+                        self.click_sound.play()
+                        self.import_songs_prompt()
+                        player.play()
+                        self.play_pause = "⏸"
+
+                    elif key == "x":
+                        player.pause()
+                        self.click_sound.play()
+                        player, song_time, playlist, current_index = self.select_playlist(player, playlist, song_time, current_index)
+                        player.play()
+                        self.play_pause = "⏸"
+
                 if player.is_playing():
                     time.sleep(0.1)
                     current_ms = max(0, player.get_time())
@@ -148,7 +180,7 @@ class UiWidgets:
                     else:
                         player, song_time, current_index = self.next_song(player, playlist, current_index, self.shuffle)
         finally:
-            termios.tcsetattr(sys.stdin, termios.TCSANOW, old_settings)
+            termios.tcsetattr(sys.stdin, termios.TCSANOW, self.old_settings)
             print("\033[?25h\n")
 
     def sync_timeline(self, song_time, current_ms):
@@ -169,14 +201,34 @@ class UiWidgets:
         else:
             self.current_vinyl_frame = 0
 
+    def import_songs_prompt(self):
+        self.disable_cbreak(self.old_settings)
+        print("\033[H\033[2J", end="", flush=True)
+        print("--- IMPORT PLAYLIST ---", flush=True)
+
+        print("Please paste folder path where music is located: ", end="", flush=True)
+        user_directory = input().strip()
+        print("Please provide a name for the playlist: ", end="", flush=True)
+        user_playlist_name = input().strip()
+
+        if user_directory and user_playlist_name:
+            self.playlist_added = append_folder_to_songs_path(user_directory, user_playlist_name)
+        time.sleep(1)
+        print("\033[H\033[2J", end="", flush=True)
+        self.enable_cbreak()
+
     def render(self, song_time):
+        print("\033[3J\033[H\033[2J", end="", flush=True)
+
         total_min = int(song_time // 60)
         total_sec = int(song_time % 60)
         total_time_str = f"{total_min}:{total_sec:02d}"
+
         lines = [
             f"[{self.new_timeline}] [{self.current_min}:{self.current_sec:02d}|{total_time_str}] [ {self.loop_type_symbol} {self.play_pause} {self.shuffle_symbol} ] [{"".join(self.volume_list)}]",
             f"[ {self.current_vinyl} {self.song}] [{self.now_real_time}]"
         ]
+
         for line in lines:
             print(f"\x1b[2K\r{line}")
         print(f"\x1b[{len(lines)}A", end="", flush=True)
@@ -190,6 +242,69 @@ class UiWidgets:
         self.new_timeline = "-------------------------"
         self.line_list = ["-"] * 25
         self.play_pause = "⏸"
+
+    def disable_cbreak(self, old_settings):
+        termios.tcflush(sys.stdin, termios.TCIFLUSH)
+        termios.tcsetattr(sys.stdin, termios.TCSANOW, old_settings)
+        print("\033[?25h", end="", flush=True)
+
+    def enable_cbreak(self):
+        tty.setcbreak(sys.stdin.fileno())
+        print("\033[?25l", end="", flush=True)
+        termios.tcflush(sys.stdin, termios.TCIFLUSH)
+
+    def select_playlist(self, player, playlist, song_time, current_index):
+        self.disable_cbreak(self.old_settings)
+        print("\033[H\033[2J", end="", flush=True)
+
+        playlists_list = []
+
+        for variable_name in dir(songs_path):
+            if not variable_name.startswith("__"):
+                playlists_list.append(variable_name)
+
+        print(" ")
+        print("         SELECT A PLAYLIST          ")
+        print(" ")
+
+        for index in range(0, len(playlists_list)):
+            print(f"{index}. {playlists_list[index]}")
+
+        playlist_index = input("").strip()
+
+        if not playlist_index.isdigit() or int(playlist_index) >= len(playlists_list):
+            print("Invalid selection. Returning to player...")
+            time.sleep(1)
+            print("\033[H\033[2J", end="", flush=True)
+            self.enable_cbreak()
+            return player, song_time, playlist, current_index
+
+        player.stop()
+
+        name_for_Playlist = playlists_list[int(playlist_index)]
+        new_playlist = getattr(songs_path, name_for_Playlist)
+        current_song_index = 0
+        current_song = new_playlist[current_song_index]
+
+        new_song_name = current_song.split("/")[-1]
+        new_player = vlc.MediaPlayer(current_song)
+
+        new_player.audio_set_volume(self.volume_level * 10)
+        new_player.play()
+
+        while new_player.get_length() <= 0:
+            time.sleep(0.1)
+
+        new_song_time = new_player.get_length() / 1000
+        self.reset(new_song_name)
+
+        print("\033[H\033[2J", end="", flush=True)
+        self.enable_cbreak()
+
+        return new_player, new_song_time, new_playlist, 0
+
+    def select_songs(self):
+        pass
 
     def next_song(self, player, playlist, current_index, shuffle):
         if shuffle:
@@ -268,20 +383,5 @@ class UiWidgets:
 
         return new_player, new_song_time, current_index
 
-def append_folder_to_songs_path(folder_path, playlist_name):
-    path = Path(folder_path).expanduser().resolve()
-    if not path.is_dir():
-        print(f"Error: Directory '{folder_path}' not found.")
-        return False
-    valid_exts = {'.mp3', '.wav', '.flac', '.m4a', '.ogg'}
-    audio_files = [str(f) for f in path.rglob('*') if f.suffix.lower() in valid_exts]
-    if not audio_files:
-        print(f"No audio files found in '{folder_path}'.")
-        return False
-    python_code = f"\n# Auto-imported playlist from: {path}\n{playlist_name} = [\n"
-    python_code += "".join(f"    {repr(audio)},\n" for audio in audio_files)
-    python_code += "]\n"
-    with open("songs_path.py", "a", encoding="utf-8") as f:
-        f.write(python_code)
-    print(f"Added {len(audio_files)} songs to songs_path.py as list '{playlist_name}'.")
-    return True
+    def update_volume_bar(self):
+        self.volume_list = ["⏹"] * self.volume_level + [" "] * (10 - self.volume_level)

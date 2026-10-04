@@ -1,10 +1,14 @@
 import os
 import sys
 
-stderr_fd = sys.stderr.fileno()
-devnull = os.open(os.devnull, os.O_WRONLY)
-os.dup2(devnull, stderr_fd)
-os.close(devnull)
+if sys.platform != "win32":
+    try:
+        stderr_fd = sys.stderr.fileno()
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, stderr_fd)
+        os.close(devnull)
+    except Exception as e:
+        print(e.message)
 
 import time
 import vlc

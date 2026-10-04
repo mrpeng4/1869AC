@@ -259,7 +259,7 @@ class UiWidgets:
         total_time_str = f"{total_min}:{total_sec:02d}"
 
         lines = [
-            f"[{self.new_timeline}] [{self.current_min}:{self.current_sec:02d}|{total_time_str}] [ {self.loop_type_symbol} {self.play_pause} {self.shuffle_symbol} ] [{"".join(self.volume_list)}]",
+            f"[{self.new_timeline}] [{self.current_min}:{self.current_sec:02d}|{total_time_str}] [ {self.loop_type_symbol} {self.play_pause} {self.shuffle_symbol} ] [{''.join(self.volume_list)}]",
             f"[ {self.current_vinyl} {self.song}] [{self.now_real_time}]"
         ]
 

@@ -7,8 +7,10 @@ import widgets
 import songs_path
 from import_system import append_folder_to_songs_path
 from auth import account
+playlists_list = []
 ##SUPABASE STUFF
 name = "guest"
+jsdoit = False
 from supabase import create_client
 VITE_SUPABASE_URL = "https://qzqhzwsfubazirdzxnse.supabase.co"
 VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_9mpzUg4eXNLneiT-3O65VA_IhjFNt8E"
@@ -37,13 +39,26 @@ with open("songs_path.py", "r") as song:
     choice = input("").strip()
     if choice.lower() == 'l':
         name = account()
+        if name != "guest":
+            #user exists need to sync to cloud
+            try:
+                response = supabase.table("users").select("songs").eq("id", name).maybe_single().execute()
+                if response is None:
+                    print("NO NON NO OKNONOKN")
+                    jsdoit = True
+                else:
+                    ##SONG JSON THERE
+                    playlists_list = response.data["songs"] or []
+                    print(playlists_list)
+            except Exception as e:
+                print(e.message)
     elif choice.lower() == 'g':  
         print("continuing as a guest...") 
     else:
         print("invalid. defaulting to guest mode.") 
     print("+====================================================+")
     ###
-    if not song.read().strip():
+    if not song.read().strip() or jsdoit is True:
         
         print(
             "It seems like there are no songs added. Please paste a folder path down below where all your music is located:"
@@ -88,20 +103,9 @@ with open("songs_path.py", "r") as song:
 if name == "guest":
     playlists_list = [v for v in dir(songs_path) if not v.startswith("__")]
 else:
-    #user exists need to sync to cloud
-    try:
-        response = supabase.table("users").select("songs").eq("id", name).maybe_single().execute()
-        if response is None:
-            print("Something went wrong.")
-        else:
-            ##SONG JSON THERE
-            playlists_list = response.data["songs"]
-            print(playlists_list)
-    except Exception as e:
-        print(e.message)
-
-
-
+    response = supabase.table("users").select("songs").eq("id", name).single().execute()
+    playlists_list = response.data["songs"]
+    print(playlists_list)
 
 print("+==================================+")
 print("         SELECT A PLAYLIST          ")

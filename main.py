@@ -36,14 +36,15 @@ with open("songs_path.py", "r") as song:
             username = input("Username:").strip()
             password = input("Password:").strip()
             real_username = username + "@gmail.com"
-            error = supabase.auth.sign_in_with_password(
-                email = real_username, 
-                password = password 
-            )
-            if error:
-                print("oh no..." +error.message)
-            else:
-                break
+            try:
+                response = supabase.auth.sign_in_with_password(
+                    email = real_username, 
+                    password = password 
+                )
+                print("welcome back "+ username)
+                user = response.user
+            except Exception as e:
+                print("oh no..." +response.error.message)
     if yor.lower() == "s":
             while True:
                 username = input("Username:").strip()

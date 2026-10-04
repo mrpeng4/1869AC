@@ -7,7 +7,13 @@ import widgets
 import songs_path
 from import_system import append_folder_to_songs_path
 from auth import account
+##SUPABASE STUFF
 name = "guest"
+from supabase import create_client
+VITE_SUPABASE_URL = "https://qzqhzwsfubazirdzxnse.supabase.co"
+VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_9mpzUg4eXNLneiT-3O65VA_IhjFNt8E"
+supabase = create_client(VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY)
+##
 # Clean stderr suppression for libVLC without breaking file descriptors
 if sys.platform != "win32":
     try:
@@ -29,7 +35,7 @@ with open("songs_path.py", "r") as song:
     print("Continue as a guest or login to save your playlists to the cloud!")
     print("( l/ g ): ")
     choice = input("").strip()
-    if choice.lower() == 'a':
+    if choice.lower() == 'l':
         name = account()
     elif choice.lower() == 'g':  
         print("continuing as a guest...") 
@@ -63,10 +69,38 @@ with open("songs_path.py", "r") as song:
         if answer:
             print("Playlist saved! Loading your music!")
             importlib.reload(songs_path)
+            ##CHECK IF LOGGED IN 
+            if name != "guest":
+                oldSongs = []
+                response = supabase.table("users").select("songs").eq("id", name).maybe_single().execute()
+                if response is None:
+                   oldSongs = []
+                else:
+                   oldSongs = response.data["songs"]
+                    
+                response = supabase.table("users").upsert({
+                    "id": name,
+                    "songs": oldSongs + answer
+                })
         else:
             print("Playlist not saved! Please rerun the script to retry")
+if name == "guest":
+    playlists_list = [v for v in dir(songs_path) if not v.startswith("__")]
+else:
+    #user exists need to sync to cloud
+    try:
+        response = supabase.table("users").select("songs").eq("id", name).maybe_single().execute()
+        if response is None:
+            print("Something went wrong.")
+        else:
+            ##SONG JSON THERE
+            playlists_list = response.data["songs"]
+            print(playlists_list)
+    except Exception as e:
+        print(e.message)
 
-playlists_list = [v for v in dir(songs_path) if not v.startswith("__")]
+
+
 
 print("+==================================+")
 print("         SELECT A PLAYLIST          ")
@@ -95,10 +129,8 @@ while player.get_length() <= 0:
     time.sleep(0.1)
 
 length_of_song = player.get_length() / 1000.0
-widget = widgets.UiWidgets(current_song_name, player)
+widget = widgets.UiWidgets(current_song_name, player, name)
 
 clear_screen()
-widget.loop_for_song(player, length_of_song, playlist, current_song_index)
+widget.loop_for_song(player, length_of_song, playlist, current_song_index, name)
 
-def get_name():
-    return name

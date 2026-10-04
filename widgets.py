@@ -21,7 +21,7 @@ else:
 
 class UiWidgets:
 
-    def __init__(self, name_of_song, player):
+    def __init__(self, name_of_song, player, id):
         mixer.init()
         self.click_sound = mixer.Sound("./turning_pages-ui-toggle-off-confirmation-608627.mp3")
         self.song = name_of_song
@@ -47,6 +47,7 @@ class UiWidgets:
         self.mute_on_off = False
         self.playlist_added = False
         self.old_settings = None
+        self.name =  id
 
     def check_key_presses(self):
         if platforms == "windows":
@@ -75,7 +76,7 @@ class UiWidgets:
                 return key
         return None
 
-    def loop_for_song(self, player, song_time, playlist, current_index):
+    def loop_for_song(self, player, song_time, playlist, current_index,id):
         if platforms == "windows":
             os.system('') #enabling the escape sequences for older windows 
             while msvcrt.kbhit():
@@ -258,7 +259,7 @@ class UiWidgets:
         total_time_str = f"{total_min}:{total_sec:02d}"
 
         lines = [
-            f"[{self.new_timeline}] [{self.current_min}:{self.current_sec:02d}|{total_time_str}] [ {self.loop_type_symbol} {self.play_pause} {self.shuffle_symbol} ] [{''.join(self.volume_list)}]",
+            f"[{self.new_timeline}] [{self.current_min}:{self.current_sec:02d}|{total_time_str}] [ {self.loop_type_symbol} {self.play_pause} {self.shuffle_symbol} ] [{''.join(self.volume_list)}] [{self.name} ||'PLAYLIST NAME']]",
             f"[ {self.current_vinyl} {self.song}] [{self.now_real_time}]"
         ]
 

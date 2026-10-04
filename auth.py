@@ -41,7 +41,7 @@ def account():
                         "password": password,}
                     )
                     print("\033[1;35m Welcome back... \033[0m" + username)
-                    return username
+                    return response.user.id
                 except Exception as e:
                     print("Login failed:", e)
         elif yor.lower() == "s":
@@ -79,7 +79,7 @@ def account():
                     }
                     )
                     print("\033[1;35m Account created! Logging you in... \033[0m")
-                    return username
+                    return response.user.id
                 except Exception as e:
                     print("\033[1;31m Signup error: \033[0m", e)
 

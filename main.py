@@ -2,6 +2,7 @@ import os
 import sys
 import importlib
 if sys.platform != "win32":
+
     try:
         stderr_fd = sys.stderr.fileno()
         devnull = os.open(os.devnull, os.O_WRONLY)
@@ -10,11 +11,15 @@ if sys.platform != "win32":
     except Exception as e:
         print(e.message)
 import time
+import re
 import vlc
 import widgets
 import songs_path
 import dotenv
 from import_system import append_folder_to_songs_path
+supabaseUsernameRegex = re.compile(
+    r"^[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*$"
+) ##Based off gotrue
 ####SAVE DATA
 from supabase import create_client
 VITE_SUPABASE_URL = "https://savqeqzsvateipglohbh.supabase.co"
@@ -24,11 +29,43 @@ supabase_key = VITE_SUPABASE_PUBLISHABLE_KEY
 supabase = create_client(supabase_url, supabase_key)
 with open("songs_path.py", "r") as song:
     print("Hello! Welcome to 1869AC - the terminal music player!")
-    print("use an account or continue as a guest?")
-    yor = input("(a/g):").strip()
-    if yor.lower() == "a":
-        username = input("Username:").strip()
-        password = input("Password:").strip()
+    print("login, signup,or continue as a guest?")
+    yor = input("(l/s/g):").strip()
+    if yor.lower() == "l":
+        while True:
+            username = input("Username:").strip()
+            password = input("Password:").strip()
+            real_username = username + "@gmail.com"
+            error = supabase.auth.sign_in_with_password(
+                email = real_username, 
+                password = password 
+            )
+            if error:
+                print("oh no..." +error.message)
+            else:
+                break
+    if yor.lower() == "s":
+            while True:
+                username = input("Username:").strip()
+                if not supabaseUsernameRegex.match(username):
+                    print("Sorry. No spaces, '@' or leading/trailing periods allowed")
+                else:
+                    break
+                while True: 
+                    password = input("Password:").strip()
+                    real_username = username + "@gmail.com"
+                    response = supabase.auth.sign_up(
+                        email = real_username, 
+                        password = password 
+                    )
+                    if error:
+                        if "Password should contain at least one character of each" in error.message:
+                            print("You need: 6+ characters, 1+ lowercase, 1+ uppercase, 1+ number, and 1+ special character.");
+                        else:
+                            print(error.message);
+                    else:
+                        print("Account created! Logging you in...")
+                        break
     elif yor.lower() == "g":
         print("continuing as a guest!")
     else:

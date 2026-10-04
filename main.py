@@ -28,8 +28,8 @@ supabaseUsernameRegex = re.compile(
     r"^[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*$"
 )
 
-VITE_SUPABASE_URL = "https://klnjziyedoaujxamqwks.supabase.co"
-VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Rkf9nH-2phU-J5ol9xgrwg_mY7-Zq1U"
+VITE_SUPABASE_URL = "https://qzqhzwsfubazirdzxnse.supabase.co"
+VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_9mpzUg4eXNLneiT-3O65VA_IhjFNt8E"
 supabase = create_client(VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY)
 
 with open("songs_path.py", "r") as song:
@@ -42,7 +42,6 @@ with open("songs_path.py", "r") as song:
     if yor.lower() == "l":
         while True:
             print("+====================================================+")
-            print("make sure the username is the gmail account you use but\njust with out the @gmail.com at the end")
             print("Username:")
             username = input("").strip()
             print("Password: ")
@@ -50,8 +49,10 @@ with open("songs_path.py", "r") as song:
             real_username = username + "@gmail.com"
             try:
                 response = supabase.auth.sign_in_with_password(
-                    {"email": real_username, "password": password}
+                    {"email": real_username, 
+                    "password": password,}
                 )
+
                 print("Welcome back " + username)
                 break
             except Exception as e:
@@ -59,19 +60,28 @@ with open("songs_path.py", "r") as song:
 
     elif yor.lower() == "s":
         print("+====================================================+")
-        print("make sure the username is the gmail account you use but\njust with out the @gmail.com at the end")
         while True:
             print("Username: ")
             username = input("").strip()
+            real_username = username + "@gmail.com"
             if not supabaseUsernameRegex.match(username):
                 print("Sorry. No spaces, '@' or leading/trailing periods allowed")
                 continue
+            ##check for duplicates
+            valid = supabase.rpc("check_username", {
+                "username":real_username
+            }).execute()
+            if valid.data == True:
+                print("sorry. that username is already taken!")
+                continue
             print("Password: ")
             password = input("").strip()
-            real_username = username + "@gmail.com"
             try:
                 response = supabase.auth.sign_up(
-                    {"email": real_username, "password": password}
+                    {
+                    "email": real_username, 
+                    "password": password
+                    }
                 )
                 print("Account created! Logging you in...")
                 break

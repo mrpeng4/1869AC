@@ -1,14 +1,24 @@
 import time
 import sys
-import select
-import termios
-import tty
+import os
+import platform
 import vlc
 import datetime
 from pygame import mixer
 import random
 from import_system import append_folder_to_songs_path
 import songs_path
+
+###########
+platforms = 'mac'
+if platform.system() == "Windows":
+    import msvcrt
+    platforms = 'windows'
+else:
+    import select
+    import termios 
+    import tty
+    platforms = 'mac'
 
 class UiWidgets:
 
@@ -40,23 +50,44 @@ class UiWidgets:
         self.old_settings = None
 
     def check_key_presses(self):
-        if select.select([sys.stdin], [], [], 0)[0]:
-            key = sys.stdin.read(1)
-            if key == '\x1b':
-                additional = sys.stdin.read(2)
-                if additional == '[C':
-                    return 'RIGHT'
-                elif additional == '[D':
-                    return 'LEFT'
-            return key
+        if platforms == "windows":
+            if msvcrt.kbhit(): #press
+                key = msvcrt.getch()
+                if key == b'\xe0' or key == b'\x00': #bytes not string
+                    additional = msvcrt.getch()
+                    if additional == b'M':
+                        return 'RIGHT'
+                    elif additional == b'K': #special for arrow keys
+                        return 'LEFT'
+                #normal keys
+                try:
+                    return key.decode("utf-8")
+                except UnicodeDecodeError:
+                    return None
+        else:
+            if select.select([sys.stdin], [], [], 0)[0]:
+                key = sys.stdin.read(1)
+                if key == '\x1b':
+                    additional = sys.stdin.read(2)
+                    if additional == '[C':
+                        return 'RIGHT'
+                    elif additional == '[D':
+                        return 'LEFT'
+                return key
         return None
 
     def loop_for_song(self, player, song_time, playlist, current_index):
-
-        self.old_settings = termios.tcgetattr(sys.stdin)
-        tty.setcbreak(sys.stdin.fileno())
-        termios.tcflush(sys.stdin, termios.TCIFLUSH)
-        print("\033[?25l", end="")
+        if platforms == "windows":
+            os.system('') #enabling the escape sequences for older windows 
+            while msvcrt.kbhit():
+                msvcrt.getch() #read
+            print("\033[?25l", end="")
+            self.old_settings = None
+        else:
+            self.old_settings = termios.tcgetattr(sys.stdin)
+            tty.setcbreak(sys.stdin.fileno())
+            termios.tcflush(sys.stdin, termios.TCIFLUSH)
+            print("\033[?25l", end="")
 
         try:
             while True:
@@ -180,8 +211,11 @@ class UiWidgets:
                     else:
                         player, song_time, current_index = self.next_song(player, playlist, current_index, self.shuffle)
         finally:
-            termios.tcsetattr(sys.stdin, termios.TCSANOW, self.old_settings)
-            print("\033[?25h\n")
+            if platforms == "windows":
+                print("\033[?25h\n")
+            else:
+                termios.tcsetattr(sys.stdin, termios.TCSANOW, self.old_settings)
+                print("\033[?25h\n")
 
     def sync_timeline(self, song_time, current_ms):
         current_sec = max(0, min(current_ms / 1000, song_time))
@@ -244,14 +278,25 @@ class UiWidgets:
         self.play_pause = "⏸"
 
     def disable_cbreak(self, old_settings):
-        termios.tcflush(sys.stdin, termios.TCIFLUSH)
-        termios.tcsetattr(sys.stdin, termios.TCSANOW, old_settings)
-        print("\033[?25h", end="", flush=True)
+        if platforms == "windows":
+            os.system('') #enabling the escape sequences for older windows 
+            while msvcrt.kbhit():
+                msvcrt.getch() #read
+            print("\033[?25h", end="", flush=True)
+        else:
+            termios.tcflush(sys.stdin, termios.TCIFLUSH)
+            termios.tcsetattr(sys.stdin, termios.TCSANOW, old_settings)
+            print("\033[?25h", end="", flush=True)
 
     def enable_cbreak(self):
-        tty.setcbreak(sys.stdin.fileno())
-        print("\033[?25l", end="", flush=True)
-        termios.tcflush(sys.stdin, termios.TCIFLUSH)
+        if platforms == "windows":
+             os.system('') #enabling the escape sequences for older windows 
+             while msvcrt.kbhit():
+                msvcrt.getch() #read
+        else:
+            tty.setcbreak(sys.stdin.fileno())
+            print("\033[?25l", end="", flush=True)
+            termios.tcflush(sys.stdin, termios.TCIFLUSH)
 
     def select_playlist(self, player, playlist, song_time, current_index):
         self.disable_cbreak(self.old_settings)
@@ -286,7 +331,7 @@ class UiWidgets:
         current_song_index = 0
         current_song = new_playlist[current_song_index]
 
-        new_song_name = current_song.split("/")[-1]
+        new_song_name = os.path.basename(current_song)
         new_player = vlc.MediaPlayer(current_song)
 
         new_player.audio_set_volume(self.volume_level * 10)
@@ -317,10 +362,7 @@ class UiWidgets:
         self.click_sound.play()
         next_song_path = playlist[next_index]
 
-        path_parts = next_song_path.split('/')
-        file_name_with_extension = path_parts[-1]
-
-        next_song_name = file_name_with_extension
+        next_song_name = os.path.basename(next_song_path) #windiws \ vs mac /
 
         new_player = vlc.MediaPlayer(next_song_path)
         new_player.audio_set_volume(self.volume_level * 10)
@@ -346,9 +388,7 @@ class UiWidgets:
         self.click_sound.play()
         previous_song_path = playlist[previous_index]
 
-        path_parts = previous_song_path.split('/')
-        file_name_with_extension = path_parts[-1]
-        previous_song_name = file_name_with_extension
+        previous_song_name = os.path.basename(previous_song_path)
 
         new_player = vlc.MediaPlayer(previous_song_path)
         new_player.audio_set_volume(self.volume_level * 10)
@@ -366,10 +406,8 @@ class UiWidgets:
         player.stop()
         self.click_sound.play()
         current_song_path = playlist[current_index]
-        path_parts = current_song_path.split('/')
-        file_name_with_extension = path_parts[-1]
-
-        current_song_name = file_name_with_extension
+ 
+        current_song_name = os.path.basename(current_song_path)
 
         new_player = vlc.MediaPlayer(current_song_path)
         new_player.audio_set_volume(self.volume_level * 10)

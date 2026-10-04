@@ -8,7 +8,6 @@ from pygame import mixer
 import random
 from import_system import append_folder_to_songs_path
 import songs_path
-
 ###########
 platforms = 'mac'
 if platform.system() == "Windows":

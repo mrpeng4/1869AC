@@ -6,7 +6,8 @@ import vlc
 import widgets
 import songs_path
 from import_system import append_folder_to_songs_path
-
+from auth import account
+name = "guest"
 # Clean stderr suppression for libVLC without breaking file descriptors
 if sys.platform != "win32":
     try:
@@ -22,12 +23,22 @@ def clear_screen():
     os.system("cls" if os.name == "nt" else "clear")
 
 with open("songs_path.py", "r") as song:
+    ### handle auth
     print("+====================================================+")
     print("Hello! Welcome to 1869AC - the terminal music player!")
     print("Continue as a guest or login to save your playlists to the cloud!")
-    print("( a/ g ): ")
-    yor = input("").strip()
+    print("( l/ g ): ")
+    choice = input("").strip()
+    if choice.lower() == 'a':
+        name = account()
+    elif choice.lower() == 'g':  
+        print("continuing as a guest...") 
+    else:
+        print("invalid. defaulting to guest mode.") 
+    print("+====================================================+")
+    ###
     if not song.read().strip():
+        
         print(
             "It seems like there are no songs added. Please paste a folder path down below where all your music is located:"
         )
@@ -88,3 +99,6 @@ widget = widgets.UiWidgets(current_song_name, player)
 
 clear_screen()
 widget.loop_for_song(player, length_of_song, playlist, current_song_index)
+
+def get_name():
+    return name

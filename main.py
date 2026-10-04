@@ -14,14 +14,26 @@ import vlc
 import widgets
 import songs_path
 import dotenv
-import supabase
 from import_system import append_folder_to_songs_path
 ####SAVE DATA
-from supabase import create_client, Client
-supabase_url = os.getenv("VITE_SUPABASE_URL")
-supabase_key = os.getenv("VITE_SUPABASE_PUBLISHABLE_KEY")
-supabase = supabase.create_client(supabase_url, supabase_key)
+from supabase import create_client
+VITE_SUPABASE_URL = "https://savqeqzsvateipglohbh.supabase.co"
+VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_CB2Whenl1QZ4p4CxllvhPw_gngL5gXv"
+supabase_url = VITE_SUPABASE_URL
+supabase_key = VITE_SUPABASE_PUBLISHABLE_KEY
+supabase = create_client(supabase_url, supabase_key)
 with open("songs_path.py", "r") as song:
+    print("Hello! Welcome to 1869AC - the terminal music player!")
+    print("use an account or continue as a guest?")
+    yor = input("(a/g):").strip()
+    if yor.lower() == "a":
+        username = input("Username:").strip()
+        password = input("Password:").strip()
+    elif yor.lower() == "g":
+        print("continuing as a guest!")
+    else:
+        print("invalid. defaulting to no.")
+
     if not song.read().strip():
         print(
             "It seems like there are no songs added. Please paste a folder path down below where all your music is located:")

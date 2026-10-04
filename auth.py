@@ -1,13 +1,11 @@
-from supabase import create_client
 import re
 import sys
+from supabaseclient import supabase
 supabaseUsernameRegex = re.compile(
     r"^[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*$"
 )
 
-VITE_SUPABASE_URL = "https://qzqhzwsfubazirdzxnse.supabase.co"
-VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_9mpzUg4eXNLneiT-3O65VA_IhjFNt8E"
-supabase = create_client(VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY)
+
 def cool_title():
     print("                                                            (   ) ") 
     print("  .---.    .--.      .--.      .--.    ___  ___   ___ .-.    | |_  ")

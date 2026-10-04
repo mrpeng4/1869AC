@@ -58,8 +58,9 @@ def box_row(left, right=""):
 
 class UiWidgets:
 
-    def __init__(self, name_of_song, player):
+    def __init__(self, name_of_song, player, id):
         mixer.init()
+        self.mode = "guest:" if id == "(press 3 to use an account)" else "user"
         self.click_sound = mixer.Sound(CLICK_SOUND_PATH)
         self.song = name_of_song
         self.current_sec = 0
@@ -89,6 +90,7 @@ class UiWidgets:
         self.previous_vol_lvl = 0
         self.mute_on_off = False
         self.old_settings = None
+        self.id = id
 
     def check_key_presses(self):
         if IS_WIN:
@@ -115,7 +117,7 @@ class UiWidgets:
             return None
         return key.lower() if key else None
 
-    def loop_for_song(self, player, song_time, playlist, current_index):
+    def loop_for_song(self, player, song_time, playlist, current_index, name):
         if IS_WIN:
             self.old_settings = None
             _enable_vt()
@@ -483,6 +485,7 @@ class UiWidgets:
             box_row("  AUDIO DECK", f"{self.now_real_time}  "),
             box_row(f"  Track: {display_name}", f"Vinyl: [{self.current_vinyl}]  "),
             box_row(f"  [{self.new_timeline}]", f"{curr_time_str} / {total_time_str}  "),
+            box_row(f"[{self.mode}|{self.id}]"),
             box_row(f"  Vol:   [{''.join(self.volume_list)}]  {self.volume_level * 10:>3}%",
                     f"Mode: [ {self.loop_type_symbol} {self.play_pause} {self.shuffle_symbol} ]  "),
             border,

@@ -10,11 +10,9 @@ from auth import account
 playlists_list = []
 ##SUPABASE STUFF
 name = "guest"
+username = "guest"
 jsdoit = False
-from supabase import create_client
-VITE_SUPABASE_URL = "https://qzqhzwsfubazirdzxnse.supabase.co"
-VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_9mpzUg4eXNLneiT-3O65VA_IhjFNt8E"
-supabase = create_client(VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY)
+from supabaseclient import supabase
 ##
 # Clean stderr suppression for libVLC without breaking file descriptors
 if sys.platform != "win32":
@@ -43,15 +41,13 @@ with open("songs_path.py", "r") as song:
             #user exists need to sync to cloud
             try:
                 response = supabase.table("users").select("songs").eq("id", name).maybe_single().execute()
-                if response is None:
-                    print("NO NON NO OKNONOKN")
+                if response is None or response.data is None:
                     jsdoit = True
                 else:
                     ##SONG JSON THERE
                     playlists_list = response.data["songs"] or []
-                    print(playlists_list)
             except Exception as e:
-                print(e.message)
+                print(response.error.message)
     elif choice.lower() == 'g':  
         print("continuing as a guest...") 
     else:
@@ -87,25 +83,32 @@ with open("songs_path.py", "r") as song:
             importlib.reload(songs_path)
             ##CHECK IF LOGGED IN 
             if name != "guest":
+                print("TRYING")
                 oldSongs = []
-                response = supabase.table("users").select("songs").eq("id", name).maybe_single().execute()
-                if response is None:
-                   oldSongs = []
-                else:
-                   oldSongs = response.data["songs"]
-                    
-                response = supabase.table("users").upsert({
-                    "id": name,
-                    "songs": oldSongs + [user_directory_name]
-                })
+                try:
+                    response = supabase.table("users").select("songs").eq("id", name).maybe_single().execute()
+                    if response is None or response.data is None:
+                        oldSongs = []
+                    else:
+                        oldSongs = response.data["songs"]
+                    response = supabase.table("users").upsert({
+                        "id": name,
+                        "songs": oldSongs + [user_directory_name]
+                    }).execute()
+                except Exception as e: 
+                    print(response.error.message)
         else:
             print("Playlist not saved! Please rerun the script to retry")
 if name == "guest":
     playlists_list = [v for v in dir(songs_path) if not v.startswith("__")]
 else:
-    response = supabase.table("users").select("songs").eq("id", name).single().execute()
-    playlists_list = response.data["songs"]
-    print(playlists_list)
+    response = supabase.table("users").select("songs").eq("id", name).maybe_single().execute()
+    if response is not None: 
+        playlists_list = response.data["songs"]
+        print(playlists_list)
+    else:
+        print("Something went wrong. try again")
+        sys.exit()
 
 print("+==================================+")
 print("         SELECT A PLAYLIST          ")
@@ -132,10 +135,16 @@ player.play()
 
 while player.get_length() <= 0:
     time.sleep(0.1)
-
+if name != "guest":
+    try:
+        response = supabase.auth.get_user()
+        username_with_email = response.user.email
+        username = username_with_email.split("@")[0]
+    except Exception as e: 
+        print(response.error.message)
 length_of_song = player.get_length() / 1000.0
-widget = widgets.UiWidgets(current_song_name, player, name)
+widget = widgets.UiWidgets(current_song_name, player, username)
 
 clear_screen()
-widget.loop_for_song(player, length_of_song, playlist, current_song_index, name)
+widget.loop_for_song(player, length_of_song, playlist, current_song_index, username)
 

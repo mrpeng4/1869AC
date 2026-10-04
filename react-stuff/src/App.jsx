@@ -35,7 +35,6 @@ import wall from "./assets/wall.PNG"
 
 const all = [wall,wallcloser,wallclosed,wallblank,wall3,wall2,greywall2,greyfloor3,greyfloor1,floor4,floor3,floor2,floor1,grate4,grate3,grate2,grate1,tank,locker,human,human2,fish,fish3,cover, couch, chest]
 
-const [page, setPage] = useState("home");
 import './index.css'
 import { motion } from 'framer-motion'
 
@@ -52,8 +51,7 @@ const scrollSettings = {
   transition: {duration: 0.8, ease: "ease-in-out"}
 }
 function App() {
-  const [count, setCount] = useState(0)
-
+  const [page, setPage] = useState("home");
   return (
     <>
     {page == "home" && 
@@ -64,6 +62,7 @@ function App() {
           <img id = "bounce" src = {cd} />
         </div>
         <p style = {{paddingLeft: "20%", fontSize: "2vw"}}> The offline and online music player! </p>
+        <button style = {{marginLeft: "20%", fontSize: "2vw"}} onClick = {() => setPage("features")}> View All Current Features </button>
       </motion.div>
 
       <motion.div className = "biggie" {...scrollSettings}>
@@ -114,7 +113,7 @@ function App() {
       </div>
       </>
     }
-    {page = "features" &&
+    {page == "features" &&
       <div>
         <Features/>
       </div>

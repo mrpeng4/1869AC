@@ -159,3 +159,19 @@ code {
   width: 3.7%; 
   height: auto;
 }
+.instructions{
+  display: flex; 
+  flex-direction: column; 
+  gap: 3em;
+  font-size: 15px; 
+  padding-bottom: 2em;
+}
+.instructions p{
+  color: white; 
+}
+#overall{
+  background-image: linear-gradient(rgba(58, 57, 57, 0.519),rgba(17, 17, 17, 0.881)), url("./assets/cover.PNG");
+  background-size: cover; 
+  background-position: center; 
+  background-repeat: no-repeat; 
+}

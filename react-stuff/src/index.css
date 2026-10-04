@@ -154,3 +154,8 @@ code {
 .reverse{
   flex-direction: row-reverse !important;
 }
+.small{
+  transform: rotate(180deg);
+  width: 3.7%; 
+  height: auto;
+}

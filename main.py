@@ -1,6 +1,6 @@
 import os
 import sys
-
+import importlib
 if sys.platform != "win32":
     try:
         stderr_fd = sys.stderr.fileno()
@@ -9,27 +9,41 @@ if sys.platform != "win32":
         os.close(devnull)
     except Exception as e:
         print(e.message)
-
 import time
 import vlc
 import widgets
 import songs_path
+import dotenv
+import supabase
 from import_system import append_folder_to_songs_path
-
+####SAVE DATA
+from supabase import create_client, Client
+supabase_url = os.getenv("VITE_SUPABASE_URL")
+supabase_key = os.getenv("VITE_SUPABASE_PUBLISHABLE_KEY")
+supabase = supabase.create_client(supabase_url, supabase_key)
 with open("songs_path.py", "r") as song:
     if not song.read().strip():
         print(
             "It seems like there are no songs added. Please paste a folder path down below where all your music is located:")
         user_directory = input("Folder path: ").strip()
         print("Please provide a name for the playlist:")
-        user_directory_name = input("Playlist name: ").strip()
-
+        while True:
+            user_directory_name = input("Playlist name: ").strip()
+            if " " in user_directory_name:
+                user_directory_name = user_directory_name.replace(" ", "_")
+                break
+            elif user_directory_name == "":
+                print("That's not a name! Please try again with a valid name!")
+            elif not user_directory_name.isidentifier():
+                print("Unfortunately, your playlist must not start with a number and can only contains letters, numbers, or _ ")
+            else:
+                break
         answer = append_folder_to_songs_path(user_directory, user_directory_name)
         if answer:
-            print("Playlist saved! Please rerun the script to load your music.")
+            print("Playlist saved! Loading your music!")
+            importlib.reload(songs_path)
         else:
             print("Playlist not saved! Please rerun the script to retry")
-        sys.exit()
 
 playlists_list = []
 

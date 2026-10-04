@@ -26,6 +26,8 @@
 
 - **Playlist selector:** select and choose between your favorite playlists.
 
+- **Song selector:** select and choose between your favorite Songs.
+
 ---
 
 ## Key Controls
@@ -44,6 +46,7 @@
 | **`q`** | Quit Player
 | **`c`** | Import new music folder as playlist
 | **`x`** | Open Playlist Switcher menu
+| **`z`** | Open Song Switcher menu
 
 ---
 

@@ -33,3 +33,11 @@ def append_folder_to_songs_path(folder_path, playlist_name):
             f.write(python_code)
         print(f"Added {len(audio_files)} songs to songs_path.py as list '{playlist_name}'.")
         return True
+def get_playlists(): 
+    playlists = {}
+    for song in dir(songs_path):
+        if song.startswith("_"):
+            continue
+        path = getattr(songs_path, song)
+        playlists[song] = path #song key value path 
+    return playlists

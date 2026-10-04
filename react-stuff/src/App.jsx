@@ -1,10 +1,8 @@
 import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
 import Features from './features.jsx'
 //IMAGES
-import hero from "./assets/hero.png"
+import left from "./assets/left.png"
+import right from "./assets/right.png"
 import cd from "./assets/cd.PNG"
 import chest from "./assets/chest.PNG"
 import couch from "./assets/couch.PNG"
@@ -70,7 +68,7 @@ function App() {
           <div>
             <h2 className = "stack"> Currently a work in progress! </h2>
           </div>
-            <img src = {hero} />
+            <img className = "ugh"  src = {left} />
         </div>
       </motion.div>
 
@@ -79,7 +77,7 @@ function App() {
           <div>
             <h2 className = "stack"> Right now the app is only avaiable offline on your terminal! It's compatible with Mac, Linux, and Windows!</h2>
           </div>
-          <img src = {hero} />
+          <img className = "ugh" src = {right} />
         </div>
       </motion.div>
 
@@ -88,7 +86,7 @@ function App() {
           <div>
             <h2 className = "stack"> You can install the application by going to this <a href = "https://github.com/mrpeng4/1869AC">repository</a> and cloning it!</h2>
           </div>
-          <img src = {hero} />
+          <img className = "ugh"  src = {left} />
         </div>
       </motion.div>
 
@@ -97,7 +95,7 @@ function App() {
           <div>
             <h2 className = "stack"> You also need to have python and VLC media player installed!</h2>
           </div>
-          <img src = {hero} />
+          <img className = "ugh"  src = {right} />
         </div>
       </motion.div>
 

@@ -50,6 +50,7 @@ with open("songs_path.py", "r") as song:
         )
         print("Folder path: ")
         user_directory = input("").strip()
+        user_directory_name = ""
         print("Please provide a name for the playlist:")
         while True:
             print("Playlist name: ")
@@ -80,7 +81,7 @@ with open("songs_path.py", "r") as song:
                     
                 response = supabase.table("users").upsert({
                     "id": name,
-                    "songs": oldSongs + answer
+                    "songs": oldSongs + [user_directory_name]
                 })
         else:
             print("Playlist not saved! Please rerun the script to retry")

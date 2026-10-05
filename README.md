@@ -3,6 +3,7 @@
 **1869AC** is an animated, terminal-based music player built in Python. Powered by `libvlc` and `pygame.mixer`, it features multi-playlist support, multiple folder importing, volume controls, shuffle queueing, and a custom ANSI terminal interface with UI sound effects.
 
 ---
+In the future it will also be online! At this website: https://www.thepillu.site/. Then it will be available both online and offline!
 
 ## Features
 
@@ -27,6 +28,8 @@
 - **Playlist selector:** select and choose between your favorite playlists.
 
 - **Song selector:** select and choose between your favorite Songs.
+
+- **Guest and Account Access:** store your playlists with a supabase backend! (may be a bit buggy at the moment but it should work!)
 
 ---
 
@@ -69,9 +72,10 @@ brew install ac1869
 ```
 
 ### Notes
-- macOS only for now
-- Requires Homebrew and VLC
+- Works on windows, mac and linux
+- Requires Homebrew(mac only) and VLC
 - Your playlists are stored in `~/Library/Application Support/1869AC/` and are never overwritten by updates
+- You can also store in the cloud with a supabase backend
 
 ### Update (if already using a previous version)
 ```

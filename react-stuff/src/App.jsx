@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import Features from './features.jsx'
 //IMAGES
-import left from "./assets/left.png"
-import right from "./assets/right.png"
+import left from "./assets/left.PNG"
+import right from "./assets/right.PNG"
 import cd from "./assets/cd.PNG"
 import chest from "./assets/chest.PNG"
 import couch from "./assets/couch.PNG"

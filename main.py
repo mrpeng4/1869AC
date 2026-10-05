@@ -47,7 +47,7 @@ with open("songs_path.py", "r") as song:
                     ##SONG JSON THERE
                     playlists_list = response.data["songs"] or []
             except Exception as e:
-                print(response.error.message)
+                print(e)
     elif choice.lower() == 'g':  
         print("continuing as a guest...") 
     else:
@@ -68,7 +68,6 @@ with open("songs_path.py", "r") as song:
             user_directory_name = input("").strip()
             if " " in user_directory_name:
                 user_directory_name = user_directory_name.replace(" ", "_")
-                break
             elif user_directory_name == "":
                 print("That's not a name! Please try again with a valid name!")
             elif not user_directory_name.isidentifier():
@@ -92,18 +91,21 @@ with open("songs_path.py", "r") as song:
                         oldSongs = response.data["songs"]
                     response = supabase.table("users").upsert({
                         "id": name2,
-                        "songs": oldSongs + [user_directory_name]
+                        "songs": oldSongs + [{"dir":user_directory, "name":user_directory_name}]
                     }).execute()
                 except Exception as e: 
-                    print(response.error.message)
+                    print(e)
         else:
             print("Playlist not saved! Please rerun the script to retry")
 if name2 == "guest":
     playlists_list = [v for v in dir(songs_path) if not v.startswith("__")]
 else:
     response = supabase.table("users").select("songs").eq("id", name2).maybe_single().execute()
-    if response is not None: 
+    if response and response.data and "songs" in response.data: 
         playlists_list = response.data["songs"]
+        for playlist in playlists_list:
+            append_folder_to_songs_path(playlist["dir"], playlist["name"], shutup = True)
+        importlib.reload(songs_path)
     else:
         print("Something went wrong. try again")
         sys.exit()
@@ -113,7 +115,8 @@ print("         SELECT A PLAYLIST          ")
 print("+==================================+")
 
 for index, name in enumerate(playlists_list):
-    print(f"{index}. {name}")
+    tobeornottobe = name["name"] if isinstance(name,dict) else name
+    print(f"{index}. {tobeornottobe}")
 
 print("\nPlease enter the number next to the playlist you want to play: ")
 playlist_index = input("").strip()
@@ -121,8 +124,11 @@ playlist_index = input("").strip()
 if not playlist_index.isdigit() or int(playlist_index) >= len(playlists_list):
     print("Invalid selection. Please rerun and pick a valid playlist number.")
     sys.exit()
-
-name_for_Playlist = playlists_list[int(playlist_index)]
+rot = playlists_list[int(playlist_index)] #IT IS LOGIN
+if isinstance(rot, dict):
+    name_for_Playlist = rot["name"]
+else:
+    name_for_Playlist = rot
 playlist = getattr(songs_path, name_for_Playlist)
 current_song_index = 0
 current_song = playlist[current_song_index]
@@ -139,7 +145,7 @@ if name2 != "guest":
         username_with_email = response.user.email
         username = username_with_email.split("@")[0]
     except Exception as e: 
-        print(response.error.message)
+        print(e)
 length_of_song = player.get_length() / 1000.0
 widget = widgets.UiWidgets(current_song_name, player, username)
 

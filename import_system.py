@@ -1,7 +1,7 @@
 from pathlib import Path
 import songs_path
 
-def append_folder_to_songs_path(folder_path, playlist_name):
+def append_folder_to_songs_path(folder_path, playlist_name, shutup=False):
 
     playlists_list = []
 
@@ -10,8 +10,9 @@ def append_folder_to_songs_path(folder_path, playlist_name):
             playlists_list.append(variable_name)
 
     if playlist_name in playlists_list:
-        print("this name is already taken please and try something other")
-
+        if shutup:
+            return True
+        print("this name is already taken please and try something else!")
         return False
 
     else:

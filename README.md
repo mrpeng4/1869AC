@@ -5,7 +5,16 @@
 **_Just made a new website for our app rn it is just a simple website for our app later it is gonna become a user dashboard for the online mode/version of our app._**
 _In the future it will also be online! At this website: https://www.thepillu.site/. Then it will be available both online and offline!_
 
+These are also work in progress features!: Preset Themes, Help Box, Speed Control, aur Custom Colors these are not working 
+
 ## Features
+- **Animation:** Dynamic 12-Slot ASCII Animated Audio Wave Bars
+
+- **Symbols:** Circular Quarter Symbols For Spinning Vinyl Animation
+
+- **Volume:** Filled Block Indicator For Volume Level Display
+
+- **Layout:** Clean Bordered Box Layout With Dynamic Row Formatting
 
 - **Music Importer:** Scans any directory on your computer for audio files (`.mp3`, `.wav`, `.flac`, `.m4a`, `.ogg`) and saves them as custom named playlists.
   

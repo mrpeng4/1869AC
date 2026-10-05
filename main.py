@@ -9,7 +9,7 @@ from import_system import append_folder_to_songs_path
 from auth import account
 playlists_list = []
 ##SUPABASE STUFF
-name = "guest"
+name2 = "guest"
 username = "guest"
 jsdoit = False
 from supabaseclient import supabase
@@ -36,11 +36,11 @@ with open("songs_path.py", "r") as song:
     print("( l/ g ): ")
     choice = input("").strip()
     if choice.lower() == 'l':
-        name = account()
-        if name != "guest":
+        name2 = account()
+        if name2 != "guest":
             #user exists need to sync to cloud
             try:
-                response = supabase.table("users").select("songs").eq("id", name).maybe_single().execute()
+                response = supabase.table("users").select("songs").eq("id", name2).maybe_single().execute()
                 if response is None or response.data is None:
                     jsdoit = True
                 else:
@@ -82,27 +82,27 @@ with open("songs_path.py", "r") as song:
             print("Playlist saved! Loading your music!")
             importlib.reload(songs_path)
             ##CHECK IF LOGGED IN 
-            if name != "guest":
+            if name2 != "guest":
                 print("TRYING")
                 oldSongs = []
                 try:
-                    response = supabase.table("users").select("songs").eq("id", name).maybe_single().execute()
+                    response = supabase.table("users").select("songs").eq("id", name2).maybe_single().execute()
                     if response is None or response.data is None:
                         oldSongs = []
                     else:
                         oldSongs = response.data["songs"]
                     response = supabase.table("users").upsert({
-                        "id": name,
+                        "id": name2,
                         "songs": oldSongs + [user_directory_name]
                     }).execute()
                 except Exception as e: 
                     print(response.error.message)
         else:
             print("Playlist not saved! Please rerun the script to retry")
-if name == "guest":
+if name2 == "guest":
     playlists_list = [v for v in dir(songs_path) if not v.startswith("__")]
 else:
-    response = supabase.table("users").select("songs").eq("id", name).maybe_single().execute()
+    response = supabase.table("users").select("songs").eq("id", name2).maybe_single().execute()
     if response is not None: 
         playlists_list = response.data["songs"]
         print(playlists_list)
@@ -135,8 +135,9 @@ player.play()
 
 while player.get_length() <= 0:
     time.sleep(0.1)
-if name != "guest":
+if name2 != "guest":
     try:
+        print("name"+name)
         response = supabase.auth.get_user()
         username_with_email = response.user.email
         username = username_with_email.split("@")[0]

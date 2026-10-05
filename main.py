@@ -83,7 +83,6 @@ with open("songs_path.py", "r") as song:
             importlib.reload(songs_path)
             ##CHECK IF LOGGED IN 
             if name2 != "guest":
-                print("TRYING")
                 oldSongs = []
                 try:
                     response = supabase.table("users").select("songs").eq("id", name2).maybe_single().execute()
@@ -105,7 +104,6 @@ else:
     response = supabase.table("users").select("songs").eq("id", name2).maybe_single().execute()
     if response is not None: 
         playlists_list = response.data["songs"]
-        print(playlists_list)
     else:
         print("Something went wrong. try again")
         sys.exit()
@@ -137,7 +135,6 @@ while player.get_length() <= 0:
     time.sleep(0.1)
 if name2 != "guest":
     try:
-        print("name"+name)
         response = supabase.auth.get_user()
         username_with_email = response.user.email
         username = username_with_email.split("@")[0]

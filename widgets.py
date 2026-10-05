@@ -60,7 +60,7 @@ class UiWidgets:
 
     def __init__(self, name_of_song, player, id):
         mixer.init()
-        self.mode = "guest:" if id == "(press 3 to use an account)" else "user"
+        self.mode = "guest:" if id == "" else "user"
         self.click_sound = mixer.Sound(CLICK_SOUND_PATH)
         self.song = name_of_song
         self.current_sec = 0

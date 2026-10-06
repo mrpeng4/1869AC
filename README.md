@@ -3,6 +3,7 @@
 **1869AC** is an animated, terminal-based music player built in Python. Powered by `libvlc` and `pygame.mixer`, it features multi-playlist support, multiple folder importing, volume controls, shuffle queueing, and a custom ANSI terminal interface with UI sound effects.
 
 **_Just made a new website for our app rn it is just a simple website for our app later it is gonna become a user dashboard for the online mode/version of our app._**
+
 _In the future it will also be online! At this website: https://www.thepillu.site/. Then it will be available both online and offline!_
 
 These are also work in progress features!: Preset Themes, Help Box, Speed Control, aur Custom Colors these are not working 

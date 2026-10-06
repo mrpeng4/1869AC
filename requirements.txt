@@ -1,0 +1,3 @@
+pygame-ce
+python-vlc
+desktop vlc (yes the vlc app)

@@ -1,0 +1,14 @@
++=== CONTROLS ===+
+
+[Space] or [K] : Play / Pause                 | [Z]            : View Songs in Current Playlist
+[Q]            : Quit Player                  |    [Q]            : Quit song selector
+[H]            : Open/Close Help Menu         |    [M]            : Cycle through the songs Downwards
+[M]            : Next Song                    |    [N]            : Cycle through the songs Upwards
+[N]            : Previous Song                |    [Enter]        : Play the selected song
+[D] or [l]     : Fast Forward 10 seconds      | [X]            : Change Playlist
+[A] or [j]     : Rewind 10 seconds            |    [`]        : Entering this key exits you out of the selector
+[P]            : Volume Up                    | [C]            : Import New Folder / Playlist
+[O]            : Volume Down                  |    [`]        : Entering this key exits you out of the selector
+[0]            : Mute Toggle                  |
+[S]            : Toggle Shuffle               |
+[E]            : Toggle Repeat (Auto / One)   |

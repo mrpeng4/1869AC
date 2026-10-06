@@ -14,7 +14,7 @@ export default function NavBar () {
 
         {/* THE ACTUAL LIST! */}
 
-        <ul>
+        <ul className = "list">
             <li> <Link to = "/"> Home </Link> </li>
             <li> <Link to = "/features"> Features </Link> </li>
             <li> <Link to = "/"> Authenticate </Link> </li>

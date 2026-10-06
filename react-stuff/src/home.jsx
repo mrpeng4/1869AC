@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Features from './features.jsx'
 import {Routes, Route, useNavigate} from 'react-router-dom'
+const arrayOfStuff = ["1","8","6","9","A","C"]
 //IMAGES
 import left from "./assets/left.PNG"
 import right from "./assets/right.PNG"
@@ -35,6 +36,7 @@ import wall from "./assets/wall.PNG"
 const all = [wall,wallcloser,wallclosed,wallblank,wall3,wall2,greywall2,greyfloor3,greyfloor1,floor4,floor3,floor2,floor1,grate4,grate3,grate2,grate1,tank,locker,human,human2,fish,fish3,cover, couch, chest]
 
 import './index.css'
+import Animation from './animation.jsx'
 import { motion } from 'framer-motion'
 
 const mainSettings = {
@@ -49,19 +51,34 @@ const scrollSettings = {
   viewport: {once: false, amount: 0.2}, //how much before
   transition: {duration: 0.8, ease: "ease-in-out"}
 }
+
 export default function Home() {
   const Navigate = useNavigate()
   return (
     <>
       <motion.div id = "column" {...mainSettings}>
         <div className = "row">
-          <h2> Welcome to 1869 AC </h2>
+          {arrayOfStuff.map((letter,index)=> {
+            const typeSettings = {
+              initial: {opacity: 0, y: 0}, 
+              whileInView: {opacity: 1, y: 0}, 
+              viewport: {once: false, amount: 0}, //how much before
+              transition: {duration: 0.2, delay: 0.05*index}
+            };
+            return(
+              <>
+                <motion.span {...typeSettings} style = {{display: "inline-block"}}>
+                  {letter}
+                </motion.span>
+              </>
+            );
+          })}
           <img id = "bounce" src = {cd} />
         </div>
-        <p style = {{paddingLeft: "20%", fontSize: "2vw"}}> The offline and online music player! </p>
-        <button style = {{marginLeft: "20%", fontSize: "2vw"}} onClick = {() => Navigate("/features")}> View All Current Features </button>
+        <p > The offline and online music player! </p>
+        <button onClick = {() => Navigate("/features")}> View All Current Features </button>
       </motion.div>
-
+      <Animation/>
       <motion.div className = "biggie" {...scrollSettings}>
         <div className = "row reverse">
           <div>

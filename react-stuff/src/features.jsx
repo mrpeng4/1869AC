@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Home from './home.jsx'
 import {Routes, Route, useNavigate} from 'react-router-dom'
 import './index.css'
+
 export default function Features() {
   const Navigate = useNavigate()
   return (

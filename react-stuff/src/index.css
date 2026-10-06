@@ -126,16 +126,17 @@ code {
   flex-direction: row;
   display: flex; 
   justify-content: center;
-  gap: 30vw; 
 }
 #column{
   flex-direction: column;
   display: flex; 
-  justify-content: left;
-  align-items: flex-start; 
+  justify-content: center;
+  align-items: center; 
   background-color: black ; 
   padding-top: 10px; 
   padding-bottom: 10px; 
+  width: 100vw; 
+  height: 100vh; 
 }
 .biggie{
   text-align: center; 
@@ -179,4 +180,15 @@ code {
   padding: 30px;
   width:300px; 
   height: 300px; 
+}
+.list{
+  display: flex; 
+  flex-direction: row; 
+}
+.nav{
+  display: flex; 
+  flex-direction: row; 
+}
+.animation{
+  transform: size(0.2);
 }

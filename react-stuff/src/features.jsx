@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import App from './App.jsx'
+import Home from './home.jsx'
 import './index.css'
 export default function Features() {
   const [page, setPage] = useState("features");
@@ -29,7 +29,7 @@ export default function Features() {
         </div>
         <button style = {{fontSize: "2vw"}} onClick = {() => setPage("home")}> Go back Home </button>
     </div>}
-    {page == "home" && <App/>}
+    {page == "home" && <Home/>}
     </>
   );
 } 

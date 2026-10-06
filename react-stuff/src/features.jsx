@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import Home from './home.jsx'
+import {Routes, Route, useNavigate} from 'react-router-dom'
 import './index.css'
 export default function Features() {
-  const [page, setPage] = useState("features");
+  const Navigate = useNavigate()
   return (
-    <>
-    {page == "features" && 
     <div id = "overall">
         <h1 style = {{paddingTop: "3em", color: "white"}}> Features! </h1>
         <div className = "instructions">
@@ -27,9 +26,7 @@ export default function Features() {
             <p><b>Playlist selector:</b> select and choose between your favorite playlists.</p>
             <p><b>Song selector:</b> select and choose between your favorite Songs.</p>
         </div>
-        <button style = {{fontSize: "2vw"}} onClick = {() => setPage("home")}> Go back Home </button>
-    </div>}
-    {page == "home" && <Home/>}
-    </>
+        <button style = {{fontSize: "2vw"}} onClick = {() => Navigate("/")}> Go back Home </button>
+    </div>
   );
 } 

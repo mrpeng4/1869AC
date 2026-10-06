@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Features from './features.jsx'
+import {Routes, Route, useNavigate} from 'react-router-dom'
 //IMAGES
 import left from "./assets/left.PNG"
 import right from "./assets/right.PNG"
@@ -48,11 +49,9 @@ const scrollSettings = {
   viewport: {once: false, amount: 0.2}, //how much before
   transition: {duration: 0.8, ease: "ease-in-out"}
 }
-function App() {
-  const [page, setPage] = useState("home");
+export default function Home() {
+  const Navigate = useNavigate()
   return (
-    <>
-    {page == "home" && 
     <>
       <motion.div id = "column" {...mainSettings}>
         <div className = "row">
@@ -60,7 +59,7 @@ function App() {
           <img id = "bounce" src = {cd} />
         </div>
         <p style = {{paddingLeft: "20%", fontSize: "2vw"}}> The offline and online music player! </p>
-        <button style = {{marginLeft: "20%", fontSize: "2vw"}} onClick = {() => setPage("features")}> View All Current Features </button>
+        <button style = {{marginLeft: "20%", fontSize: "2vw"}} onClick = {() => Navigate("/features")}> View All Current Features </button>
       </motion.div>
 
       <motion.div className = "biggie" {...scrollSettings}>
@@ -109,15 +108,7 @@ function App() {
           />
         ))}
       </div>
-      </>
-    }
-    {page == "features" &&
-      <div>
-        <Features/>
-      </div>
-    }
     </>
   )
 }
 
-export default App

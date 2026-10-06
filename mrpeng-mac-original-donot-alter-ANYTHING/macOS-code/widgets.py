@@ -39,6 +39,7 @@ class UiWidgets:
         self.mute_on_off = False
         self.playlist_added = False
         self.old_settings = None
+        self.help_menu_toggle = False
 
     def check_key_presses(self):
         if select.select([sys.stdin], [], [], 0)[0]:
@@ -160,12 +161,17 @@ class UiWidgets:
                         self.play_pause = "⏸"
 
                     elif key == "z":
-                        player.pause()
                         self.click_sound.play()
                         player, song_time, playlist, current_index = self.select_songs(player, playlist, song_time,
                                                                                        current_index)
                         player.play()
                         self.play_pause = "⏸"
+
+                    elif key == "h":
+                        if self.help_menu_toggle == False:
+                            self.help_menu_toggle = True
+                        else:
+                            self.help_menu_toggle = False
 
                 if player.is_playing():
                     time.sleep(0.1)
@@ -214,35 +220,61 @@ class UiWidgets:
 
     def import_songs_prompt(self):
         self.disable_cbreak(self.old_settings)
-        print("\033[H\033[2J", end="", flush=True)
-        print("--- IMPORT PLAYLIST ---", flush=True)
+        self.hard_clear_screen()
+        print("+==================================+")
+        print("          IMPORT PLAYLIST           ")
+        print("+==================================+")
 
         print("Please paste folder path where music is located: ", end="", flush=True)
         user_directory = input().strip()
+
+        if user_directory == "`":
+            print("Returning back...")
+            time.sleep(0.5)
+            self.hard_clear_screen()
+            self.enable_cbreak()
+            return
+
         print("Please provide a name for the playlist: ", end="", flush=True)
         user_playlist_name = input().strip()
 
+        if user_directory == "`":
+            print("Returning back...")
+            self.hard_clear_screen()
+            self.enable_cbreak()
+            time.sleep(0.5)
+            return
+
         if user_directory and user_playlist_name:
             self.playlist_added = append_folder_to_songs_path(user_directory, user_playlist_name)
+        else:
+            print("Directory not found returning back...")
+
         time.sleep(1)
-        print("\033[H\033[2J", end="", flush=True)
+        self.hard_clear_screen()
         self.enable_cbreak()
 
     def render(self, song_time):
-        print("\033[3J\033[H\033[2J", end="", flush=True)
+        self.hard_clear_screen()
 
-        total_min = int(song_time // 60)
-        total_sec = int(song_time % 60)
-        total_time_str = f"{total_min}:{total_sec:02d}"
+        if self.help_menu_toggle == True:
+            with open("help_keybinds.txt", "r") as help_data:
+                print(help_data.read())
+        else:
+            total_min = int(song_time // 60)
+            total_sec = int(song_time % 60)
+            total_time_str = f"{total_min}:{total_sec:02d}"
 
-        lines = [
-            f"[{self.new_timeline}] [{self.current_min}:{self.current_sec:02d}|{total_time_str}] [ {self.loop_type_symbol} {self.play_pause} {self.shuffle_symbol} ] [{"".join(self.volume_list)}]",
-            f"[ {self.current_vinyl} {self.song}] [{self.now_real_time}]"
-        ]
+            lines = [
+                f"[{self.new_timeline}] [{self.current_min}:{self.current_sec:02d}|{total_time_str}] [ {self.loop_type_symbol} {self.play_pause} {self.shuffle_symbol} ] [{"".join(self.volume_list)}]",
+                f"[ {self.current_vinyl} {self.song}] [{self.now_real_time}]",
+                "",
+                "[H] Help menu"
+            ]
 
-        for line in lines:
-            print(f"\x1b[2K\r{line}")
-        print(f"\x1b[{len(lines)}A", end="", flush=True)
+            for line in lines:
+                print(f"\x1b[2K\r{line}")
+            print(f"\x1b[{len(lines)}A", end="", flush=True)
 
     def reset(self, song_name):
         self.song = song_name
@@ -266,7 +298,7 @@ class UiWidgets:
 
     def select_playlist(self, player, playlist, song_time, current_index):
         self.disable_cbreak(self.old_settings)
-        print("\033[H\033[2J", end="", flush=True)
+        self.hard_clear_screen()
 
         playlists_list = []
 
@@ -281,12 +313,20 @@ class UiWidgets:
         for index in range(0, len(playlists_list)):
             print(f"{index}. {playlists_list[index]}")
 
+        print("\nPlease enter the number next to the playlist you want to play: ")
         playlist_index = input("").strip()
+
+        if playlist_index == "`":
+            print("Returning back...")
+            time.sleep(0.5)
+            self.hard_clear_screen()
+            self.enable_cbreak()
+            return player, song_time, playlist, current_index
 
         if not playlist_index.isdigit() or int(playlist_index) >= len(playlists_list):
             print("Invalid selection. Returning to player...")
-            time.sleep(1)
-            print("\033[H\033[2J", end="", flush=True)
+            time.sleep(0.5)
+            self.hard_clear_screen()
             self.enable_cbreak()
             return player, song_time, playlist, current_index
 
@@ -309,13 +349,13 @@ class UiWidgets:
         new_song_time = new_player.get_length() / 1000
         self.reset(new_song_name)
 
-        print("\033[H\033[2J", end="", flush=True)
+        self.hard_clear_screen()
         self.enable_cbreak()
 
         return new_player, new_song_time, new_playlist, 0
 
     def select_songs(self, player, playlist, song_time, current_index):
-        print("\033[H\033[2J", end="", flush=True)
+        self.hard_clear_screen()
 
         start = 0
         end = 10
@@ -325,7 +365,7 @@ class UiWidgets:
             temp_select_list.append(song.split("/")[-1])
 
         while True:
-            print("\033[3J\033[H\033[2J", end="", flush=True)
+            self.hard_clear_screen()
 
             if start >= len(temp_select_list) - 10:
                 start = max(0, len(temp_select_list) - 10)
@@ -343,17 +383,22 @@ class UiWidgets:
                 song_name = temp_select_list[line_index]
 
                 if line_index == select_index:
-                    print(f"\x1b[2K\r> {song_name} <")
+                    print(f"\x1b[2K\r        > {song_name} <")
                 else:
                     print(f"\x1b[2K\r  {song_name}  ")
+            print("")
+            print("[Up/N] Up | [Down/M] Down | [Enter] Play | [Q] Back")
             print(f"\x1b[{safe_end - start}A", end="", flush=True)
+            print(f"")
 
             key = self.check_key_presses()
 
             if key == 'q':
+                self.click_sound.play()
                 break
 
             if key == 'm':
+                self.click_sound.play()
                 if select_index < len(temp_select_list) - 1:
                     select_index += 1
                     if start < len(temp_select_list) - 10 and select_index > start:
@@ -361,6 +406,7 @@ class UiWidgets:
                         end += 1
 
             if key == 'n':
+                self.click_sound.play()
                 if select_index > 0:
                     select_index -= 1
                     if select_index < start:
@@ -384,12 +430,12 @@ class UiWidgets:
                 new_song_time = new_player.get_length() / 1000
                 self.reset(new_song_name)
 
-                print("\033[H\033[2J", end="", flush=True)
+                self.hard_clear_screen()
                 return new_player, new_song_time, playlist, select_index
 
             time.sleep(0.1)
 
-        print("\033[H\033[2J", end="", flush=True)
+        self.hard_clear_screen()
         return player, song_time, playlist, current_index
 
     def next_song(self, player, playlist, current_index, shuffle):
@@ -471,3 +517,7 @@ class UiWidgets:
 
     def update_volume_bar(self):
         self.volume_list = ["⏹"] * self.volume_level + [" "] * (10 - self.volume_level)
+
+    def hard_clear_screen(self):
+        sys.stdout.write("\033[2J\033[3J\033[H\033[0m")
+        sys.stdout.flush()

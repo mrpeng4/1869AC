@@ -1,11 +1,14 @@
 import { useState , useEffect, useRef} from 'react'
+import { useNavigate} from 'react-router-dom'
 
 export default function login(){
+    const Navigate = useNavigate()
     const [name, setName] = useState("")
     const [password, setPassword] = useState("")
-    function submit() { 
+    function submit(e) { 
         e.preventDefault(); 
         // DB CODE
+        Navigate("/dashboard")
     }
     return(
         <div className = "container">

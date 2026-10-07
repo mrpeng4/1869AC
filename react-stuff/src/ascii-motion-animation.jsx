@@ -44,6 +44,14 @@ const AsciiMotionAnimation = (props = {}) => {
     isPlayingRef.current = value;
     setIsPlaying(value);
   }, []);
+  //change a variable without rerendering
+  const toggler = useRef(false); 
+  //caches a function prevents rerendering
+   const toggle = useCallback(() => {
+    toggler.current = !toggler.current
+  }, []);
+
+
   const play = useCallback(() => {
     updatePlayingState(true);
   }, [updatePlayingState]);
@@ -160,7 +168,23 @@ const AsciiMotionAnimation = (props = {}) => {
 
         while (remaining >= duration && FRAMES.length > 0) {
           remaining -= duration;
-          nextIndex = (nextIndex + 1) % FRAMES.length;
+          if(!toggler.current){
+            if(nextIndex >= FRAMES.length - 1 ){
+              //END NOW LETS REVERSE
+              toggler.current = true; 
+              nextIndex -- 
+            }else{
+              nextIndex = (nextIndex - 1) % FRAMES.length;
+            }
+          }else{
+            if(nextIndex < 0){
+              //FIRST FRAME NORMAL
+              toggler.current = false; 
+              nextIndex ++
+            }else{
+              nextIndex = (nextIndex + 1) % FRAMES.length;
+            }
+          }
           duration = FRAMES[nextIndex]?.duration ?? duration;
         }
 

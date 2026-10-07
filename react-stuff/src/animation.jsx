@@ -1,15 +1,14 @@
 //CREDITS TO https://ascii-motion.app/ FOR WRITING THIS AMAZING REACT COMPONENT!
-import { useCallback, useRef, useEffect } from 'react';
+import react, { useCallback, useRef, useEffect } from 'react';
 import AsciiMotionAnimation from './ascii-motion-animation.jsx';
 
 export default function MyPage() {
   const playbackRef = useRef(null);
   const handleReady = useCallback((api) => {
     playbackRef.current = api;
+    api.play()
   }, []);
-  useEffect(() => {
-      playbackRef.current?.play()
-    },[])
+
   return (
     <div className = "animation">
       <AsciiMotionAnimation

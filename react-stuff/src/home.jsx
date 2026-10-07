@@ -57,28 +57,30 @@ export default function Home() {
   return (
     <>
       <motion.div id = "column" {...mainSettings}>
-        <div className = "row">
-          {arrayOfStuff.map((letter,index)=> {
-            const typeSettings = {
-              initial: {opacity: 0, y: 0}, 
-              whileInView: {opacity: 1, y: 0}, 
-              viewport: {once: false, amount: 0}, //how much before
-              transition: {duration: 0.2, delay: 0.05*index}
-            };
-            return(
-              <>
-                <motion.span {...typeSettings} style = {{display: "inline-block"}}>
-                  {letter}
-                </motion.span>
-              </>
-            );
-          })}
-          <img id = "bounce" src = {cd} />
-        </div>
-        <p > The offline and online music player! </p>
-        <button onClick = {() => Navigate("/features")}> View All Current Features </button>
+        <div className = "content">
+          <div className = "row">
+            {arrayOfStuff.map((letter,index)=> {
+              const typeSettings = {
+                initial: {opacity: 0, y: 0}, 
+                whileInView: {opacity: 1, y: 0}, 
+                viewport: {once: false, amount: 0}, //how much before
+                transition: {duration: 0.2, delay: 0.05*index}
+              };
+              return(
+                <>
+                  <motion.span {...typeSettings} style = {{display: "inline-block"}}>
+                    {letter}
+                  </motion.span>
+                </>
+              );
+            })}
+            <img id = "bounce" src = {cd} />
+          </div>
+          <p > The offline and online music player! </p>
+          <button onClick = {() => Navigate("/features")}> View All Current Features </button>
+          </div>
+        <Animation/>
       </motion.div>
-      <Animation/>
       <motion.div className = "biggie" {...scrollSettings}>
         <div className = "row reverse">
           <div>

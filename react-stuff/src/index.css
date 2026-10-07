@@ -137,6 +137,9 @@ code {
   padding-bottom: 10px; 
   width: 100vw; 
   height: 100vh; 
+  position: relative; 
+  overflow: hidden; 
+  object-fit: contain; 
 }
 .biggie{
   text-align: center; 
@@ -190,5 +193,14 @@ code {
   flex-direction: row; 
 }
 .animation{
-  transform: size(0.2);
+  transform: scale(1.5);
+  position: absolute; 
+  z-index: 1; 
+  inset:0; 
+  overflow: hidden; 
+  object-fit: contain; 
+}
+.content{
+  position: relative; 
+  z-index:2; 
 }

@@ -52,6 +52,13 @@ const scrollSettings = {
   transition: {duration: 0.8, ease: "ease-in-out"}
 }
 
+const cursorSettings = {
+    initial: {opacity: 0, y: 0}, 
+    whileInView: {opacity: [0,1,0], y: 0}, 
+    viewport: {once: false, amount: 0}, //how much before
+    transition: {delay: 1.2 + 0.1*arrayOfStuff.length}
+};
+
 export default function Home() {
   const Navigate = useNavigate()
   return (
@@ -64,20 +71,23 @@ export default function Home() {
                 initial: {opacity: 0, y: 0}, 
                 whileInView: {opacity: 1, y: 0}, 
                 viewport: {once: false, amount: 0}, //how much before
-                transition: {duration: 0.2, delay: 0.05*index}
+                transition: {duration: 0.2, delay: 0.9+ (0.1*index)}
               };
               return(
                 <>
-                  <motion.span {...typeSettings} style = {{display: "inline-block"}}>
+                  <motion.span key = {index} {...typeSettings} style = {{display: "inline-block"}}>
                     {letter}
                   </motion.span>
                 </>
               );
             })}
+            <motion.span {...cursorSettings} className = "flicker"> | </motion.span>
             <img id = "bounce" src = {cd} />
           </div>
-          <p > The offline and online music player! </p>
-          <button onClick = {() => Navigate("/features")}> View All Current Features </button>
+          <div>
+            <p > The offline and online music player! </p>
+            <button onClick = {() => Navigate("/features")}> View All Current Features </button>
+          </div>
           </div>
         <Animation/>
       </motion.div>

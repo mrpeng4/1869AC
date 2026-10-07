@@ -55,7 +55,6 @@ body {
 }
 
 #root {
-  width: 1126px;
   max-width: 100%;
   margin: 0 auto;
   text-align: center;
@@ -126,6 +125,7 @@ code {
   flex-direction: row;
   display: flex; 
   justify-content: center;
+  align-items: center; 
 }
 #column{
   flex-direction: column;
@@ -203,4 +203,10 @@ code {
 .content{
   position: relative; 
   z-index:2; 
+  background: linear-gradient(to bottom,rgba(0, 0, 0, 0.908), rgba(0, 0, 0, 0.503));
+  width: 100%;
+  height: 100%;
+}
+.content span{
+  font-size: 200px;
 }

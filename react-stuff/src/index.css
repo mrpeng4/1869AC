@@ -109,8 +109,8 @@ code {
   background: var(--code-bg);
 }
 @keyframes bounce{
-  0% { transform: scale(0.8) rotate(0deg)}
-  100% { transform: scale(1.2) rotate(360deg)}
+  0% {transform: rotate(0deg) scale(1.2)}
+  100% {transform: rotate(360deg) scale(1.2)}
 }
 #bounce { 
   animation-name: bounce; 
@@ -187,14 +187,6 @@ code {
   width:300px; 
   height: 300px; 
 }
-.list{
-  display: flex; 
-  flex-direction: row; 
-}
-.nav{
-  display: flex; 
-  flex-direction: row; 
-}
 .animation{
   transform-origin: center center;
   transform: scale(1.5);
@@ -238,4 +230,43 @@ code {
 }
 .flicker{
   animation: flicker 0.7s infinite;
+}
+.mini{
+  color: rgb(190, 234, 197); 
+  font-family: terminal;
+  font-weight: bold; 
+  font-size: xx-large;
+}
+.nav{
+  background-color: black; 
+  /* MAYBE ADD PARTICLES???*/
+  display: flex; 
+  flex-direction: row; 
+  padding-right: 20px 100px 10px 10px;
+
+}
+.logo{
+  width: 100px; 
+  height: auto;
+  margin-right: auto;
+  z-index: 10; 
+  gap: 0px; 
+}
+.logo img{
+  width: 100px;
+}
+.list{
+  display: flex; 
+  flex-direction: row; 
+  gap: 5em;
+  list-style: none;
+  margin: 0; 
+  padding: 0; 
+}
+.list li a{
+  color: white; 
+  text-decoration: none;
+  font-family: terminal;
+  font-weight: bold; 
+  font-size: xx-large;
 }

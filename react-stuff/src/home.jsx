@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState , useEffect, useRef} from 'react'
 import Features from './features.jsx'
 import {Routes, Route, useNavigate} from 'react-router-dom'
 const arrayOfStuff = ["1","8","6","9","A","C"]
@@ -60,9 +60,18 @@ const cursorSettings = {
 };
 
 export default function Home() {
+  const target = useRef(null);
+  useEffect(() => {
+    if(target.current){
+      target.current.scrollIntoView({ //special to start where i want
+        behavior: "instant",  //smooth auto
+        block: "start" //alligns to the top!
+      })
+    }
+  }, [])
   const Navigate = useNavigate()
   return (
-    <>
+    <div ref = {target}>
       <motion.div id = "column" {...mainSettings}>
         <div className = "content">
           <div className = "row">
@@ -84,9 +93,9 @@ export default function Home() {
             <motion.span {...cursorSettings} className = "flicker"> | </motion.span>
             <img id = "bounce" src = {cd} />
           </div>
-          <div>
+          <div className = "mini">
             <p > The offline and online music player! </p>
-            <button onClick = {() => Navigate("/features")}> View All Current Features </button>
+            <button style = {{color: "white", backgroundColor: "green", transform: "scale(1.5)"}} onClick = {() => Navigate("/features")}> View All Current Features </button>
           </div>
           </div>
         <Animation/>
@@ -137,7 +146,7 @@ export default function Home() {
           />
         ))}
       </div>
-    </>
+    </div>
   )
 }
 

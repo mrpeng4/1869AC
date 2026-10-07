@@ -1,5 +1,4 @@
 import { useState , useEffect, useRef} from 'react'
-import Features from './features.jsx'
 import {Routes, Route, useNavigate} from 'react-router-dom'
 const arrayOfStuff = ["1","8","6","9","A","C"]
 //IMAGES
@@ -95,7 +94,10 @@ export default function Home() {
           </div>
           <div className = "mini">
             <p > The offline and online music player! </p>
-            <button style = {{color: "white", backgroundColor: "green", transform: "scale(1.5)"}} onClick = {() => Navigate("/features")}> View All Current Features </button>
+            <div className = "flex_row">
+              <button style = {{color: "white", backgroundColor: "MediumSeaGreen", transform: "scale(1.5)"}} onClick = {() => Navigate("/login")}> Let's go! </button>
+              <button style = {{color: "white", backgroundColor: "DarkGreen", transform: "scale(1.5)"}} onClick = {() => Navigate("/features")}> View All Current Features </button>
+            </div>
           </div>
           </div>
         <Animation/>

@@ -242,7 +242,7 @@ code {
   /* MAYBE ADD PARTICLES???*/
   display: flex; 
   flex-direction: row; 
-  padding-right: 20px 100px 10px 10px;
+  padding-right: 10px 100px 10px 10px;
 
 }
 .logo{
@@ -269,4 +269,30 @@ code {
   font-family: terminal;
   font-weight: bold; 
   font-size: xx-large;
+}
+.flex_row{
+  display: flex; 
+  flex-direction: row; 
+  justify-content: center;
+  align-items: center; 
+  gap: 5em;
+  padding-top: 3em;
+}
+
+.form{
+  display: flex; 
+  flex-direction: column; 
+  justify-content: center;
+  align-items: center; 
+  gap: 5em;
+  align-self:center;
+  text-align: center;
+}
+.container{
+  display: flex; 
+  flex-direction: column; 
+  justify-content: center;
+  align-items: center; 
+  text-align: center;
+  height: 100vh; 
 }

@@ -9,7 +9,7 @@ export default function NavBar () {
     <nav className = "nav">
         <div className = "logo">
             <img className = "small" src = {cover} />
-            <h1> meow </h1>
+            <p> meow </p>
         </div>
 
         {/* THE ACTUAL LIST! */}
@@ -18,7 +18,7 @@ export default function NavBar () {
             <li> <Link to = "/"> Home </Link> </li>
             <li> <Link to = "/features"> Features </Link> </li>
             <li> <Link to = "/"> Authenticate </Link> </li>
-
+            <li> <Link to = "/login"> Login </Link></li>
         </ul>
     </nav>
     );

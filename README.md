@@ -8,7 +8,7 @@ _In the future it will also be online! At this website: https://www.thepillu.sit
 
 These are also work in progress features!: Preset Themes, Help Box, Speed Control, aur Custom Colors these are not working 
 
-# Architecture Diagram
+## Architecture Diagram
 ```mermaid
 flowchart TD
 

@@ -2,10 +2,10 @@ import json
 import os
 import sys
 
-stderr_fd = sys.stderr.fileno()
-devnull = os.open(os.devnull, os.O_WRONLY)
-os.dup2(devnull, stderr_fd)
-os.close(devnull)
+# stderr_fd = sys.stderr.fileno()
+# devnull = os.open(os.devnull, os.O_WRONLY)
+# os.dup2(devnull, stderr_fd)
+# os.close(devnull)
 
 import time
 import vlc
@@ -135,7 +135,9 @@ while True:
             data_to_save = {
                 "self.volume_level": volume,
                 "playlist": name_for_Playlist,
-                "index_of_song": current_song_index
+                "index_of_song": current_song_index,
+                "shuffle": False,
+                "auto": "auto"
             }
             with open("last_played.json", "w") as user_save:
                 json.dump(data_to_save, user_save, indent=4)
@@ -169,7 +171,9 @@ while True:
             data_to_save = {
                 "self.volume_level": volume,
                 "playlist": name_for_Playlist,
-                "index_of_song": current_song_index
+                "index_of_song": current_song_index,
+                "shuffle": False,
+                "auto": "auto"
             }
             with open("last_played.json", "w") as user_save:
                 json.dump(data_to_save, user_save, indent=4)

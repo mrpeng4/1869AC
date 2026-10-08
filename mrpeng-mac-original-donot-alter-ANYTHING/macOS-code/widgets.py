@@ -34,7 +34,7 @@ class UiWidgets:
         self.current_vinyl_frame = 0
         self.line_list = ["-"] * 25
 
-        if user_saves:
+        if user_saves != {}:
             if user_saves["shuffle"]:
                 self.shuffle = True
                 self.shuffle_symbol = "⤭"
@@ -47,7 +47,7 @@ class UiWidgets:
 
         self.shuffled_song_list = []
 
-        if user_saves:
+        if user_saves != {}:
             if user_saves["auto"] == "auto":
                 self.loop_type = "auto"
                 self.loop_type_symbol = "↬"

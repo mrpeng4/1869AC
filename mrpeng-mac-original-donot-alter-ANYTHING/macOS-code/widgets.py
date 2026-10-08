@@ -9,12 +9,16 @@ from pygame import mixer
 import random
 from import_system import append_folder_to_songs_path
 import songs_path
-
+import json
 
 class UiWidgets:
 
-    def __init__(self, name_of_song, player):
+    def __init__(self, name_of_song, player, name_of_playlist, current_index, volume):
         mixer.init()
+
+        with open("last_played.json", "r") as user_saves_raw:
+            user_saves = json.load(user_saves_raw)
+
         self.click_sound = mixer.Sound("./turning_pages-ui-toggle-off-confirmation-608627.mp3")
         self.song = name_of_song
         self.current_sec = 0
@@ -23,23 +27,45 @@ class UiWidgets:
         self.seconds_for_vinyl = 0
         self.new_timeline = "-------------------------"
         self.vinyl = ["◐", "◓", "◑", "◒"]
-        self.volume_level = 10
-        self.volume_list = ["⏹"] * 10
-        player.audio_set_volume(100)
+        self.volume_level = volume
+        self.volume_list = ["⏹"] * self.volume_level + [" "] * (10 - self.volume_level)
         self.play_pause = "⏸"
         self.current_vinyl = "◐"
         self.current_vinyl_frame = 0
         self.line_list = ["-"] * 25
-        self.shuffle = False
-        self.shuffle_symbol = "⇉"
+
+        if user_saves:
+            if user_saves["shuffle"]:
+                self.shuffle = True
+                self.shuffle_symbol = "⤭"
+            else:
+                self.shuffle = False
+                self.shuffle_symbol = "⇉"
+        else:
+            self.shuffle = False
+            self.shuffle_symbol = "⇉"
+
         self.shuffled_song_list = []
-        self.loop_type = "auto"
-        self.loop_type_symbol = "↬"
+
+        if user_saves:
+            if user_saves["auto"] == "auto":
+                self.loop_type = "auto"
+                self.loop_type_symbol = "↬"
+            else:
+                self.loop_type = "one"
+                self.loop_type_symbol = "⥁"
+        else:
+            self.loop_type = "auto"
+            self.loop_type_symbol = "↬"
+
         self.previous_vol_lvl = 0
         self.mute_on_off = False
         self.playlist_added = False
         self.old_settings = None
         self.help_menu_toggle = False
+        self.current_ms = None
+        self.name_of_playlist = name_of_playlist
+        self.current_index = current_index
 
     def check_key_presses(self):
         if select.select([sys.stdin], [], [], 0)[0]:
@@ -53,7 +79,7 @@ class UiWidgets:
             return key
         return None
 
-    def loop_for_song(self, player, song_time, playlist, current_index):
+    def loop_for_song(self, player, song_time, playlist):
 
         self.old_settings = termios.tcgetattr(sys.stdin)
         tty.setcbreak(sys.stdin.fileno())
@@ -90,6 +116,7 @@ class UiWidgets:
                             self.volume_level += 1
                             self.update_volume_bar()
                             player.audio_set_volume(self.volume_level * 10)
+                            self.save_data_to_last_play()
 
                     elif key == "o":
                         if self.volume_level > 0:
@@ -97,37 +124,44 @@ class UiWidgets:
                             self.volume_level -= 1
                             self.update_volume_bar()
                             player.audio_set_volume(self.volume_level * 10)
+                            self.save_data_to_last_play()
 
                     elif key == "s":
                         self.click_sound.play()
                         if self.shuffle:
                             self.shuffle = False
                             self.shuffle_symbol = "⇉"
+                            self.save_data_to_last_play()
                         else:
                             self.shuffle = True
                             self.shuffle_symbol = "⤭"
+                            self.save_data_to_last_play()
 
                     elif key == "e":
                         self.click_sound.play()
                         if self.loop_type == "one":
                             self.loop_type = "auto"
                             self.loop_type_symbol = "↬"
+                            self.save_data_to_last_play()
                         else:
                             self.loop_type = "one"
                             self.loop_type_symbol = "⥁"
+                            self.save_data_to_last_play()
 
                     elif key == "m":
-                        player, song_time, current_index = self.next_song(player, playlist, current_index, self.shuffle)
+                        player, song_time, self.current_index = self.next_song(player, playlist, self.current_index, self.shuffle)
+                        self.save_data_to_last_play()
 
                     elif key == "n":
-                        player, song_time, current_index = self.previous_song(player, playlist, current_index,
+                        player, song_time, self.current_index = self.previous_song(player, playlist, self.current_index,
                                                                               self.shuffle)
+                        self.save_data_to_last_play()
 
                     elif key == 'q':  # Quit
                         player.stop()
                         self.click_sound.play()
-                        self.play_pause = "▶"
-                        self.render(song_time)
+                        self.hard_clear_screen()
+                        self.save_data_to_last_play()
                         break
 
                     elif key == '0':
@@ -137,12 +171,14 @@ class UiWidgets:
                             self.volume_level = 0
                             self.update_volume_bar()
                             player.audio_set_volume(self.volume_level * 10)
+                            self.save_data_to_last_play()
                             self.mute_on_off = True
                         else:
                             self.click_sound.play()
                             self.volume_level = self.previous_vol_lvl
                             self.update_volume_bar()
                             player.audio_set_volume(self.volume_level * 10)
+                            self.save_data_to_last_play()
                             self.mute_on_off = False
 
                     elif key == "c":
@@ -155,15 +191,17 @@ class UiWidgets:
                     elif key == "x":
                         player.pause()
                         self.click_sound.play()
-                        player, song_time, playlist, current_index = self.select_playlist(player, playlist, song_time,
-                                                                                          current_index)
+                        player, song_time, playlist, self.current_index = self.select_playlist(player, playlist, song_time,
+                                                                                          self.current_index)
+                        self.save_data_to_last_play()
                         player.play()
                         self.play_pause = "⏸"
 
                     elif key == "z":
                         self.click_sound.play()
-                        player, song_time, playlist, current_index = self.select_songs(player, playlist, song_time,
-                                                                                       current_index)
+                        player, song_time, playlist, self.current_index = self.select_songs(player, playlist, song_time,
+                                                                                       self.current_index)
+                        self.save_data_to_last_play()
                         player.play()
                         self.play_pause = "⏸"
 
@@ -175,27 +213,29 @@ class UiWidgets:
 
                 if player.is_playing():
                     time.sleep(0.1)
-                    current_ms = max(0, player.get_time())
-                    total_sec = int(current_ms / 1000)
+                    self.current_ms = max(0, player.get_time())
+                    total_sec = int(self.current_ms / 1000)
                     self.current_min = int(total_sec / 60)
                     self.current_sec = total_sec % 60
-                    self.sync_timeline(song_time, current_ms)
+                    self.sync_timeline(song_time, self.current_ms)
                     self.seconds_for_vinyl += 0.1
                     if self.seconds_for_vinyl >= 1.0:
                         self.change_vinyl()
                         self.seconds_for_vinyl = 0
-                    self.render(song_time)
+                    self.render(song_time, self.current_index, playlist)
                 else:
                     time.sleep(0.1)
 
                 if player.get_state() == vlc.State.Ended:
                     self.new_timeline = "========================="
                     self.play_pause = "▶"
-                    self.render(song_time)
+                    self.render(song_time, self.current_index, playlist)
                     if self.loop_type == "one":
-                        player, song_time, current_index = self.loop(player, playlist, current_index)
+                        player, song_time, self.current_index = self.loop(player, playlist, self.current_index)
+                        self.save_data_to_last_play()
                     else:
-                        player, song_time, current_index = self.next_song(player, playlist, current_index, self.shuffle)
+                        player, song_time, self.current_index = self.next_song(player, playlist, self.current_index, self.shuffle)
+                        self.save_data_to_last_play()
         finally:
             termios.tcsetattr(sys.stdin, termios.TCSANOW, self.old_settings)
             print("\033[?25h\n")
@@ -254,7 +294,7 @@ class UiWidgets:
         self.hard_clear_screen()
         self.enable_cbreak()
 
-    def render(self, song_time):
+    def render(self, song_time, current_song_index, playlist):
         self.hard_clear_screen()
 
         if self.help_menu_toggle == True:
@@ -266,8 +306,14 @@ class UiWidgets:
             total_time_str = f"{total_min}:{total_sec:02d}"
 
             lines = [
-                f"[{self.new_timeline}] [{self.current_min}:{self.current_sec:02d}|{total_time_str}] [ {self.loop_type_symbol} {self.play_pause} {self.shuffle_symbol} ] [{"".join(self.volume_list)}]",
-                f"[ {self.current_vinyl} {self.song}] [{self.now_real_time}]",
+                "+=================================================+",
+                "",
+                f"[ {self.current_vinyl} {self.song}]",
+                f"[{self.new_timeline}] [{self.current_min}:{self.current_sec:02d}|{total_time_str}] ",
+                f"[ {self.loop_type_symbol} {self.play_pause} {self.shuffle_symbol} ] [{"".join(self.volume_list)} {self.volume_level * 10}%] [{current_song_index + 1}/{len(playlist)}]",
+                f"[{self.now_real_time}]",
+                "",
+                "+=================================================+",
                 "",
                 "[H] Help menu"
             ]
@@ -332,8 +378,8 @@ class UiWidgets:
 
         player.stop()
 
-        name_for_Playlist = playlists_list[int(playlist_index)]
-        new_playlist = getattr(songs_path, name_for_Playlist)
+        self.name_of_playlist = playlists_list[int(playlist_index)]
+        new_playlist = getattr(songs_path, self.name_of_playlist)
         current_song_index = 0
         current_song = new_playlist[current_song_index]
 
@@ -357,9 +403,9 @@ class UiWidgets:
     def select_songs(self, player, playlist, song_time, current_index):
         self.hard_clear_screen()
 
-        start = 0
-        end = 10
-        select_index = 0
+        start = current_index - 5
+        end = current_index + 5
+        select_index = current_index
         temp_select_list = []
         for song in playlist:
             temp_select_list.append(song.split("/")[-1])
@@ -392,6 +438,9 @@ class UiWidgets:
             print(f"")
 
             key = self.check_key_presses()
+
+            if key == "s":
+                pass
 
             if key == 'q':
                 self.click_sound.play()
@@ -521,3 +570,14 @@ class UiWidgets:
     def hard_clear_screen(self):
         sys.stdout.write("\033[2J\033[3J\033[H\033[0m")
         sys.stdout.flush()
+
+    def save_data_to_last_play(self):
+        data_to_save = {
+            "self.volume_level": self.volume_level,
+            "playlist": self.name_of_playlist,
+            "index_of_song": self.current_index,
+            "shuffle": self.shuffle,
+            "auto": self.loop_type
+        }
+        with open("last_played.json", "w") as user_save:
+            json.dump(data_to_save, user_save, indent=4)

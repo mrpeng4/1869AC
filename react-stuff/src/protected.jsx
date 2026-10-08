@@ -1,9 +1,13 @@
 // USE THIS TO PROTECT A PATH BY SURROUNDING IT
-import { useNavigate} from 'react-router-dom';
-export default function Protected({authenticated, page}){
-    const Navigate = useNavigate()
-    if(!authenticated){
-        return <Navigate to = "/login"/>;
+import {Navigate} from 'react-router-dom';
+import {useEffect} from 'react'
+import {get_login_status} from './data.jsx'
+
+
+export default function Protected({children}){
+    const isAuthenticated = get_login_status()
+    if(!isAuthenticated){
+        return <Navigate to =  "/login" />
     }
-    return page;
+    return children 
 }

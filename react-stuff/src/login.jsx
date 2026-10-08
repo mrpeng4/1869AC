@@ -1,5 +1,6 @@
 import { useState , useEffect, useRef} from 'react'
 import { useNavigate} from 'react-router-dom'
+import {set_login_status} from './data.jsx'
 
 export default function login(){
     const Navigate = useNavigate()
@@ -8,6 +9,8 @@ export default function login(){
     function submit(e) { 
         e.preventDefault(); 
         // DB CODE
+        set_login_status(true)
+        console.log("ERM WHAT THE SIGMA")
         Navigate("/dashboard")
     }
     return(
@@ -33,3 +36,4 @@ export default function login(){
         </div>
     );
 }
+

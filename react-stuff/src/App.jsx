@@ -7,13 +7,13 @@ import Navbar from './navbar.jsx'
 import Login from './login.jsx'
 import Protected from './protected.jsx'
 import Dashboard from './dashboard.jsx'
+
 //import Navbar from './navbar.jsx'
 //ALL PAGES!
 function Topset(){
-  const [isAuthenticated, setAuthenticated] = useState(false);
   const path = useLocation();
   const target = useRef(null);
-    useEffect(() => {
+  useEffect(() => {
       if(target.current){
         target.current.scrollIntoView({ //special to start where i want
           behavior: "instant",  //smooth auto
@@ -27,10 +27,10 @@ function Topset(){
         <Route path = "/" element = {<Home/>}/>
         <Route path = "/features" element = {<Features/>}/>
         <Route path = "/login" element = {
-          <Login setAuthenticate = {setAuthenticate}/>
+          <Login/>
           }/>
         <Route path = "/dashboard" element = {
-          <Protected authenticated={isAutenticated}>
+          <Protected>
             <Dashboard /> 
           </Protected>
         }/>

@@ -163,8 +163,9 @@ code {
 }
 .small{
   transform: rotate(180deg);
-  width: 3.7%; 
+  width: 60px; 
   height: auto;
+  object-fit: contain;
 }
 .instructions{
   display: flex; 
@@ -256,6 +257,8 @@ code {
   width: 100px;
 }
 .list{
+  align-items: center;
+  justify-content: center; 
   display: flex; 
   flex-direction: row; 
   gap: 5em;
@@ -264,6 +267,10 @@ code {
   padding: 0; 
 }
 .list li a{
+  display: flex; 
+  align-items: center;
+  justify-content: center;
+  text-decoration: none; 
   color: white; 
   text-decoration: none;
   font-family: terminal;
@@ -295,4 +302,28 @@ code {
   align-items: center; 
   text-align: center;
   height: 100vh; 
+}
+.menu_row{
+  width: 100%;
+  display: absolute; 
+  gap: 16px;
+  top: 0; 
+  left: 0; 
+}
+.medium{
+  width: 200px; 
+  height: auto;
+}
+.playlists{
+  display: grid; 
+  grid-template-columns: repeat(4,1fr);
+  grid-template-rows: repeat(2,auto);
+  gap: 20px;
+  overflow: hidden;
+}
+.cutoff{
+  display: grid; 
+  grid-template-columns: repeat(4,1fr);
+  grid-template-rows: repeat(2,auto);
+  gap: 20px;
 }

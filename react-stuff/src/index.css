@@ -315,11 +315,14 @@ code {
   height: auto;
 }
 .playlists{
+  width: 100%;
+  height: auto;
   display: grid; 
-  grid-template-columns: repeat(4,1fr);
+  grid-template-columns: repeat(4,2fr);
   grid-template-rows: repeat(2,auto);
   gap: 20px;
   overflow: hidden;
+  background: linear-gradient(to bottom, rgba(141, 65, 65, 0.244), rgba(191, 37, 37, 0.512) );
 }
 .cutoff{
   display: grid; 

@@ -37,6 +37,7 @@ function List(){
                 <li> <Link to = "/features"> Features </Link> </li>
                 <li> <Link to = "/"> Authenticate </Link> </li>
                 <li> <Link to = "/login"> Login </Link></li>
+                <li> <Link to = "/signup"> Signup </Link></li>
             </ul>
         );
     }

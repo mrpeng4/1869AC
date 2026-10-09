@@ -6,7 +6,7 @@ import {supabase} from './main.jsx'
 //MY BELOVED TOASTER
 import toast from 'react-hot-toast';
 
-export default function login(){
+export default function signup(){
     const Navigate = useNavigate()
     const [name, setName] = useState("")
     const [password, setPassword] = useState("")
@@ -22,17 +22,32 @@ export default function login(){
                 }
             )
             if (error) throw error
-            toast.success("Sucessfully logged in!")
+            toast.success("Accound already exists. logging you in!")
             set_login_status(true)
             console.log("ERM WHAT THE SIGMA")
-            setTimeout(()=>{Navigate("/dashboard")},1000)
+            setTimeout(()=>{Navigate("/dashboard")},[1000])
+        }catch(e){
+            //not possible to login lets signup then 
+            try{
+            const {data,error} = await supabase.auth.signUp(
+                {
+                    "email": real_username, 
+                    "password": password
+                }
+            )
+            if (error) throw error
+            toast.success("Created a new account!")
+            set_login_status(true)
+            console.log("ERM WHAT THE SIGMA")
+            setTimeout(()=>{Navigate("/dashboard")},[1000])
         }catch(e){
             toast.error(e.message || "Something has gone wrong.")
         }
     }
+    }
     return(
         <div className = "container">
-            <p> Login! </p>
+            <p> Sign Up! </p>
             <form className = "form" onSubmit = {submit}>
                 <input 
                 placeholder = "name"
@@ -50,7 +65,7 @@ export default function login(){
                 <button type = "submit"> Submit! </button>
             </form>
             <p> {`Name ${name} Password ${password}`}</p>
-            <button type = "button" onClick = {() => Navigate('/signup')}> Signup </button>
+            <button onClick = {() => Navigate("/login")}> Login </button>
         </div>
     );
 }

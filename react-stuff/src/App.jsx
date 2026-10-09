@@ -8,6 +8,9 @@ import Login from './login.jsx'
 import Protected from './protected.jsx'
 import Dashboard from './dashboard.jsx'
 
+//MY BELOVED TOASTER
+import {Toaster} from 'react-hot-toast';
+
 //import Navbar from './navbar.jsx'
 //ALL PAGES!
 function Topset(){
@@ -42,6 +45,7 @@ export default function App() {
   return(
     <BrowserRouter>
       <Navbar/>
+      <Toaster/>
       <Topset/>
     </BrowserRouter>
   );

@@ -8,7 +8,11 @@ import sys
 # os.close(devnull)
 
 import time
-import vlc
+try:
+    import vlc
+except (ImportError, OSError):
+    print("VLC could not be loaded. Please install VLC media player and python-vlc, then run again.")
+    sys.exit(1)
 import widgets
 import songs_path
 from import_system import append_folder_to_songs_path
@@ -40,6 +44,10 @@ def sync_playlists_with_folders():
             continue
 
         new = [str(p) for p in path.rglob('*') if p.suffix.lower() in valid_exts]
+
+        if not new:
+            print(f"[{name}] source folder has no audio files, skipped: {folder}")
+            continue
         old_set, new_set = set(old), set(new)
         added = sorted(new_set - old_set)
         removed = [s for s in old if s not in new_set]
@@ -85,7 +93,7 @@ with open("songs_path.py", "r") as song:
                 continue
             print("Please provide a name for the playlist:")
             user_directory_name = input("Playlist name: ").strip()
-            if user_directory == "`":
+            if user_directory_name == "`":
                 continue
 
             if "" != user_directory and "" != user_directory_name:
@@ -95,7 +103,8 @@ with open("songs_path.py", "r") as song:
                     print("\033[H\033[2J", end="", flush=True)
                     break
                 else:
-                    print("Playlist not saved! Please rerun the script to retry")
+                    print("Playlist not saved! Please try again")
+                    time.sleep(1.5)
 
 playlists_list = []
 
@@ -116,10 +125,16 @@ while True:
 
     if playlist_index == "z":
 
-        with open("last_played.json", "r") as user_saves_raw:
-            user_saves = json.load(user_saves_raw)
+        try:
+            with open("last_played.json", "r") as user_saves_raw:
+                user_saves = json.load(user_saves_raw)
+        except (FileNotFoundError, json.JSONDecodeError):
+            user_saves = {}
 
-        if user_saves:
+        saved_playlist = getattr(songs_path, str(user_saves.get("playlist", "")), [])
+        saved_index = user_saves.get("index_of_song", -1)
+
+        if user_saves and saved_playlist and 0 <= saved_index < len(saved_playlist):
 
             name_for_Playlist = user_saves["playlist"]
             playlist = getattr(songs_path, name_for_Playlist)
@@ -129,7 +144,7 @@ while True:
 
             player = vlc.MediaPlayer(current_song)
             player.play()
-            volume = user_saves["self.volume_level"]
+            volume = user_saves.get("self.volume_level", 10)
             player.audio_set_volume(volume * 10)
 
             data_to_save = {
@@ -144,13 +159,19 @@ while True:
 
             break
         else:
-            pass
+            print("No valid last played song found.")
+            time.sleep(1)
     else:
         if not playlist_index.isdigit() or int(playlist_index) >= len(playlists_list):
             print("Invalid selection.")
         else:
             name_for_Playlist = playlists_list[int(playlist_index)]
             playlist = getattr(songs_path, name_for_Playlist)
+
+            if not playlist:
+                print("That playlist is empty.")
+                continue
+
             current_song_index = 0
             current_song = playlist[current_song_index]
             current_song_name = current_song.split("/")[-1]
@@ -158,11 +179,14 @@ while True:
             player = vlc.MediaPlayer(current_song)
             player.play()
 
-            with open("last_played.json", "r") as user_saves_raw:
-                user_saves = json.load(user_saves_raw)
+            try:
+                with open("last_played.json", "r") as user_saves_raw:
+                    user_saves = json.load(user_saves_raw)
+            except (FileNotFoundError, json.JSONDecodeError):
+                user_saves = {}
 
             if user_saves:
-                volume = user_saves["self.volume_level"]
+                volume = user_saves.get("self.volume_level", 10)
                 player.audio_set_volume(volume * 10)
             else:
                 volume = 10
@@ -180,11 +204,19 @@ while True:
             break
 
 
-while player.get_length() <= 0:
+waited = 0
+while player.get_length() <= 0 and waited < 5:
     time.sleep(0.1)
-length_of_song = player.get_length() / 1000.0
+    waited += 0.1
+
+if player.get_length() <= 0:
+    current_song_name = current_song_name + " (could not load)"
+length_of_song = max(0, player.get_length()) / 1000.0
 widget = widgets.UiWidgets(current_song_name, player, name_for_Playlist, current_song_index, volume)
 
 print("\033[3J\033[H\033[2J", end="", flush=True)
 
-widget.loop_for_song(player, length_of_song, playlist)
+try:
+    widget.loop_for_song(player, length_of_song, playlist)
+except KeyboardInterrupt:
+    print("\nStopped.")

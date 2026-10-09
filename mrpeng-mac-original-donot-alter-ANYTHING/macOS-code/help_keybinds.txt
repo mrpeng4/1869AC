@@ -9,6 +9,8 @@
 [A] or [j]     : Rewind 10 seconds            |    [`]        : Entering this key exits you out of the selector
 [P]            : Volume Up                    | [C]            : Import New Folder / Playlist
 [O]            : Volume Down                  |    [`]        : Entering this key exits you out of the selector
-[0]            : Mute Toggle                  |
-[S]            : Toggle Shuffle               |
-[E]            : Toggle Repeat (Auto / One)   |
+[0]            : Mute Toggle                  | [V]            : Create Virtual Playlist
+[S]            : Toggle Shuffle               |    [Enter]        : Mark / Unmark song (then [F] to finish)
+[E]            : Toggle Repeat (Auto / One)   | [B]            : Delete Playlist
+                                              | [I]            : Import Single Song
+                                              | [R]            : Remove Song From Playlist

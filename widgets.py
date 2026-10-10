@@ -1,565 +1,948 @@
-import datetime
-import importlib
-import os
-import random
-import sys
 import time
-try:
+import sys
+import os
+import vlc
+import datetime
+from pygame import mixer
+import random
+from import_system import append_folder_to_songs_path, get_playlists, is_valid_playlist_name, \
+    delete_playlist_from_songs_path, delete_song_from_playlist, add_song_to_playlist, \
+    create_virtual_playlist_in_songs_path
+import songs_path
+import json
+
+if os.name == "nt":
+    import msvcrt
+    os.system("")
+else:
     import select
-except ImportError:
-    select = None
-try:
     import termios
     import tty
-except ImportError:
-    termios = None
-    tty = None
-if os.name == "nt":
-    try:
-        import msvcrt
-    except ImportError:
-        msvcrt = None
-else:
-    msvcrt = None
-
-import vlc
-from pygame import mixer
-
-from import_system import append_folder_to_songs_path, get_playlists
-import songs_path
-
-IS_WIN = os.name == "nt"
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CLICK_SOUND_PATH = os.path.join(BASE_DIR, "turning_pages-ui-toggle-off-confirmation-608627.mp3")
-
-BOX_INNER_WIDTH = 60
-
-
-def _enable_vt():
-    # ponytail: Win10+ only, turns on ANSI handling; no-op elsewhere
-    if IS_WIN:
-        os.system("")
-
-
-def _song_name(path):
-    # ponytail: normalize sep so basename works for mac (/) and win (\) paths
-    return os.path.basename(str(path).replace("\\", "/"))
-
-
-def truncate(text, max_width):
-    return text if len(text) <= max_width else text[:max_width - 3] + "..."
-
-
-def box_row(left, right=""):
-    gap = BOX_INNER_WIDTH - len(left) - len(right)
-    return "|" + left + " " * max(gap, 1) + right + "|"
-
 
 class UiWidgets:
 
-    def __init__(self, name_of_song, player, id):
+    def __init__(self, name_of_song, player, name_of_playlist, current_index, volume):
         mixer.init()
-        self.mode = "guest:" if id == "" else "user"
-        self.click_sound = mixer.Sound(CLICK_SOUND_PATH)
+
+        try:
+            with open("last_played.json", "r") as user_saves_raw:
+                user_saves = json.load(user_saves_raw)
+        except (FileNotFoundError, json.JSONDecodeError):
+            user_saves = {}
+
+        self.click_sound = mixer.Sound("./turning_pages-ui-toggle-off-confirmation-608627.mp3")
         self.song = name_of_song
         self.current_sec = 0
         self.current_min = 0
-        self.new_timeline = "-" * 25
-
-        # Spinning vinyl (original symbols)
+        self.current_timeline_part = 0
+        self.seconds_for_vinyl = 0
+        self.new_timeline = "-------------------------"
         self.vinyl = ["◐", "◓", "◑", "◒"]
+        self.volume_level = volume
+        self.volume_list = ["⏹"] * self.volume_level + [" "] * (10 - self.volume_level)
+        self.play_pause = "⏸"
         self.current_vinyl = "◐"
         self.current_vinyl_frame = 0
-        self.last_vinyl_time = time.monotonic()
-
-        # Volume (original symbols)
-        self.volume_level = 10
-        self.volume_list = [" "] + ["■"] * 10 + [" "]
-        player.audio_set_volume(100)
-
-        # Modes (original symbols)
-        self.play_pause = "⏸"
         self.line_list = ["-"] * 25
-        self.shuffle = False
-        self.shuffle_symbol = "⇉"
+        self.total_sec = None
+
+        if user_saves != {}:
+            if user_saves["shuffle"]:
+                self.shuffle = True
+                self.shuffle_symbol = "⤭"
+            else:
+                self.shuffle = False
+                self.shuffle_symbol = "⇉"
+        else:
+            self.shuffle = False
+            self.shuffle_symbol = "⇉"
+
         self.shuffled_song_list = []
-        self.loop_type = "auto"
-        self.loop_type_symbol = "↬"
+
+        if user_saves != {}:
+            if user_saves["auto"] == "auto":
+                self.loop_type = "auto"
+                self.loop_type_symbol = "↬"
+            else:
+                self.loop_type = "one"
+                self.loop_type_symbol = "⥁"
+        else:
+            self.loop_type = "auto"
+            self.loop_type_symbol = "↬"
 
         self.previous_vol_lvl = 0
         self.mute_on_off = False
+        self.playlist_added = False
         self.old_settings = None
-        self.id = id
+        self.help_menu_toggle = False
+        self.current_ms = None
+        self.name_of_playlist = name_of_playlist
+        self.current_index = current_index
 
     def check_key_presses(self):
-        if IS_WIN:
-            if msvcrt is None or not msvcrt.kbhit():
-                return None
-            ch = msvcrt.getwch()
-            if ch in ('\x00', '\xe0'):
-                if not msvcrt.kbhit():
+        if os.name == "nt":
+            if msvcrt.kbhit():
+                key = msvcrt.getwch()
+                if key in ('\x00', '\xe0'):
+                    additional = msvcrt.getwch()
+                    if additional == 'M':
+                        return 'RIGHT'
+                    elif additional == 'K':
+                        return 'LEFT'
                     return None
-                ch2 = msvcrt.getwch()
-                return {'M': 'RIGHT', 'K': 'LEFT', 'H': 'UP', 'P': 'DOWN'}.get(ch2)
-            return ch.lower() if ch else None
-
-        fd = sys.stdin.fileno()
-        if not select.select([fd], [], [], 0)[0]:
+                if key == '\x03':
+                    raise KeyboardInterrupt
+                return key
             return None
 
-        key = os.read(fd, 1).decode(errors="ignore")
-        if key == '\x1b':
-            if select.select([fd], [], [], 0.02)[0]:
-                seq = os.read(fd, 2).decode(errors="ignore")
-                return {'[C': 'RIGHT', '[D': 'LEFT', 'OC': 'RIGHT', 'OD': 'LEFT',
-                        '[A': 'UP', '[B': 'DOWN', 'OA': 'UP', 'OB': 'DOWN'}.get(seq)
+        if select.select([sys.stdin], [], [], 0)[0]:
+            key = os.read(sys.stdin.fileno(), 1).decode("utf-8", errors="ignore")
+            if key == '\x1b':
+                if select.select([sys.stdin], [], [], 0.05)[0]:
+                    additional = os.read(sys.stdin.fileno(), 2).decode("utf-8", errors="ignore")
+                    if additional == '[C':
+                        return 'RIGHT'
+                    elif additional == '[D':
+                        return 'LEFT'
+                return key
             return None
-        return key.lower() if key else None
 
-    def loop_for_song(self, player, song_time, playlist, current_index, name):
-        if IS_WIN:
-            self.old_settings = None
-            _enable_vt()
-        else:
+    def loop_for_song(self, player, song_time, playlist):
+
+        if os.name != "nt":
             self.old_settings = termios.tcgetattr(sys.stdin)
             tty.setcbreak(sys.stdin.fileno())
-            termios.tcflush(sys.stdin, termios.TCIFLUSH)
+        self.flush_key_buffer()
         print("\033[?25l", end="")
-        self.clear_screen()
-
-        consecutive_errors = 0
 
         try:
             while True:
-                self.now_real_time = datetime.datetime.now().strftime("%d %b %Y %I:%M %p")
+                self.now_real_time = datetime.datetime.now().strftime("%d %b %Y %I:%M")
+                self.play_pause = "⏸"
                 key = self.check_key_presses()
 
                 if key:
-                    if key in (' ', 'k'):
+                    if key in (' ', "k"):
+                        self.play_pause = "▶"
                         self.click_sound.play()
-                        state = player.get_state()
-                        if state == vlc.State.Paused:
-                            player.set_pause(0)
-                        elif state == vlc.State.Playing:
-                            player.set_pause(1)
-                        else:
-                            player.play()
+                        player.pause()
 
-                    elif key in ('d', 'l', 'RIGHT'):
+                    elif key in ('d', "l"):
                         self.click_sound.play()
-                        new_ms = min(max(player.get_time(), 0) + 10000, int(song_time * 1000))
+                        new_ms = min(player.get_time() + 10000, int(song_time * 1000))
                         player.set_time(new_ms)
                         self.sync_timeline(song_time, new_ms)
 
-                    elif key in ('a', 'j', 'LEFT'):
+                    elif key in ('a', "j"):
                         self.click_sound.play()
                         new_ms = max(player.get_time() - 10000, 0)
                         player.set_time(new_ms)
                         self.sync_timeline(song_time, new_ms)
 
-                    elif key == 'p':
+                    elif key == "p":
                         if self.volume_level < 10:
                             self.click_sound.play()
-                            self.set_volume(player, self.volume_level + 1)
+                            self.volume_level += 1
+                            self.update_volume_bar()
+                            player.audio_set_volume(self.volume_level * 10)
+                            self.save_data_to_last_play()
 
-                    elif key == 'o':
+                    elif key == "o":
                         if self.volume_level > 0:
                             self.click_sound.play()
-                            self.set_volume(player, self.volume_level - 1)
+                            self.volume_level -= 1
+                            self.update_volume_bar()
+                            player.audio_set_volume(self.volume_level * 10)
+                            self.save_data_to_last_play()
 
-                    elif key == 's':
+                    elif key == "s":
                         self.click_sound.play()
-                        self.shuffle = not self.shuffle
-                        self.shuffle_symbol = "⤭" if self.shuffle else "⇉"
+                        if self.shuffle:
+                            self.shuffle = False
+                            self.shuffle_symbol = "⇉"
+                            self.save_data_to_last_play()
+                        else:
+                            self.shuffle = True
+                            self.shuffle_symbol = "⤭"
+                            self.save_data_to_last_play()
 
-                    elif key == 'e':
+                    elif key == "e":
                         self.click_sound.play()
-                        self.loop_type = "one" if self.loop_type == "auto" else "auto"
-                        self.loop_type_symbol = "⥁" if self.loop_type == "one" else "↬"
+                        if self.loop_type == "one":
+                            self.loop_type = "auto"
+                            self.loop_type_symbol = "↬"
+                            self.save_data_to_last_play()
+                        else:
+                            self.loop_type = "one"
+                            self.loop_type_symbol = "⥁"
+                            self.save_data_to_last_play()
 
-                    elif key == 'm':
-                        player, song_time, current_index = self.next_song(
-                            player, playlist, current_index, self.shuffle)
+                    elif key == "m":
+                        player, song_time, self.current_index = self.next_song(player, playlist, self.current_index, self.shuffle)
+                        self.save_data_to_last_play()
 
-                    elif key == 'n':
-                        player, song_time, current_index = self.previous_song(
-                            player, playlist, current_index, self.shuffle)
+                    elif key == "n":
+
+                        if self.total_sec and self.total_sec > 5:
+                            player, song_time, self.current_index = self.song_player(player, self.current_index, playlist)
+                        else:
+                            player, song_time, self.current_index = self.previous_song(player, playlist, self.current_index,
+                                                                                  self.shuffle)
+                            self.save_data_to_last_play()
 
                     elif key == 'q':
+                        player.stop()
                         self.click_sound.play()
-                        self.play_pause = "▶"
-                        self.render(song_time)
+                        self.hard_clear_screen()
+                        self.save_data_to_last_play()
                         break
 
                     elif key == '0':
-                        self.click_sound.play()
-                        if self.mute_on_off:
-                            self.set_volume(player, self.previous_vol_lvl)
-                        elif self.volume_level > 0:
+                        if not self.mute_on_off:
+                            self.click_sound.play()
                             self.previous_vol_lvl = self.volume_level
-                            self.set_volume(player, 0)
+                            self.volume_level = 0
+                            self.update_volume_bar()
+                            player.audio_set_volume(self.volume_level * 10)
+                            self.save_data_to_last_play()
                             self.mute_on_off = True
+                        else:
+                            self.click_sound.play()
+                            self.volume_level = self.previous_vol_lvl
+                            self.update_volume_bar()
+                            player.audio_set_volume(self.volume_level * 10)
+                            self.save_data_to_last_play()
+                            self.mute_on_off = False
 
-                    elif key == 'c':
-                        was_paused = player.get_state() == vlc.State.Paused
-                        player.set_pause(1)
+                    elif key == "c":
+                        player.pause()
                         self.click_sound.play()
                         self.import_songs_prompt()
-                        if not was_paused:
-                            player.set_pause(0)
+                        player.play()
+                        self.play_pause = "⏸"
 
-                    elif key == 'x':
-                        was_paused = player.get_state() == vlc.State.Paused
-                        player.set_pause(1)
+                    elif key == "x":
+                        player.pause()
                         self.click_sound.play()
-                        old_player = player
-                        player, song_time, playlist, current_index = self.select_playlist(
-                            player, playlist, song_time, current_index)
-                        if player is old_player and not was_paused:
-                            player.set_pause(0)
+                        player, song_time, playlist, self.current_index = self.select_playlist(player, playlist, song_time,
+                                                                                          self.current_index)
+                        self.save_data_to_last_play()
+                        player.play()
+                        self.play_pause = "⏸"
 
-                    elif key == 'z':
-                        was_paused = player.get_state() == vlc.State.Paused
-                        player.set_pause(1)
+                    elif key == "z":
                         self.click_sound.play()
-                        old_player = player
-                        player, song_time, playlist, current_index = self.select_songs(
-                            player, playlist, song_time, current_index)
-                        if player is old_player and not was_paused:
-                            player.set_pause(0)
+                        player, song_time, playlist, self.current_index = self.select_songs(player, playlist, song_time,
+                                                                                       self.current_index)
+                        self.save_data_to_last_play()
+                        player.play()
+                        self.play_pause = "⏸"
 
-                if song_time <= 1:
-                    length = player.get_length()
-                    if length > 0:
-                        song_time = length / 1000
+                    elif key == "v":
+                        player.pause()
+                        self.click_sound.play()
+                        self.create_virtual_playlist()
+                        player.play()
+                        self.play_pause = "⏸"
 
-                state = player.get_state()
-                self.play_pause = "▶" if state == vlc.State.Paused else "⏸"
+                    elif key == "b":
+                        player.pause()
+                        self.click_sound.play()
+                        player, song_time, playlist, self.current_index = self.delete_playlist_prompt(player, playlist, song_time,
+                                                                                                 self.current_index)
+                        player.play()
+                        self.play_pause = "⏸"
+
+                    elif key == "i":
+                        player.pause()
+                        self.click_sound.play()
+                        playlist = self.import_single_song_prompt(playlist)
+                        player.play()
+                        self.play_pause = "⏸"
+
+                    elif key == "r":
+                        player.pause()
+                        self.click_sound.play()
+                        player, song_time, playlist, self.current_index = self.delete_song_prompt(player, playlist, song_time,
+                                                                                             self.current_index)
+                        self.save_data_to_last_play()
+                        player.play()
+                        self.play_pause = "⏸"
+
+                    elif key == "h":
+                        if self.help_menu_toggle == False:
+                            self.help_menu_toggle = True
+                        else:
+                            self.help_menu_toggle = False
 
                 if player.is_playing():
-                    consecutive_errors = 0
-                    self.sync_timeline(song_time, max(0, player.get_time()))
-
-                    now = time.monotonic()
-                    if now - self.last_vinyl_time >= 0.3:
+                    time.sleep(0.1)
+                    self.current_ms = max(0, player.get_time())
+                    self.total_sec = int(self.current_ms / 1000)
+                    self.current_min = int(self.total_sec / 60)
+                    self.current_sec = self.total_sec % 60
+                    self.sync_timeline(song_time, self.current_ms)
+                    self.seconds_for_vinyl += 0.1
+                    if self.seconds_for_vinyl >= 1.0:
                         self.change_vinyl()
-                        self.last_vinyl_time = now
+                        self.seconds_for_vinyl = 0
+                    self.render(song_time, self.current_index, playlist)
+                else:
+                    time.sleep(0.1)
 
-                self.render(song_time)
-
-                state = player.get_state()
-                if state == vlc.State.Error:
-                    consecutive_errors += 1
-                    if consecutive_errors >= len(playlist):
-                        self.clear_screen()
-                        print("None of the songs in this playlist could be played.")
-                        break
-                    player, song_time, current_index = self.next_song(
-                        player, playlist, current_index, self.shuffle)
-                elif state == vlc.State.Ended:
+                if player.get_state() == vlc.State.Ended:
+                    self.new_timeline = "========================="
+                    self.play_pause = "▶"
+                    self.render(song_time, self.current_index, playlist)
                     if self.loop_type == "one":
-                        player, song_time, current_index = self.loop(player, playlist, current_index)
+                        player, song_time, self.current_index = self.loop(player, playlist, self.current_index)
+                        self.save_data_to_last_play()
                     else:
-                        player, song_time, current_index = self.next_song(
-                            player, playlist, current_index, self.shuffle)
-
-                time.sleep(0.1)
-
+                        player, song_time, self.current_index = self.next_song(player, playlist, self.current_index, self.shuffle)
+                        self.save_data_to_last_play()
         finally:
-            try:
-                player.stop()
-            except Exception:
-                pass
-            if not IS_WIN and self.old_settings is not None:
+            if os.name != "nt":
                 termios.tcsetattr(sys.stdin, termios.TCSANOW, self.old_settings)
             print("\033[?25h\n")
 
-    def clear_screen(self):
-        # ponytail: native cls on win (VT-independent); ANSI + scrollback wipe elsewhere
-        if IS_WIN:
-            os.system("cls")
-        else:
-            print("\033[3J\033[H\033[2J", end="", flush=True)
-
-    def set_volume(self, player, level):
-        self.volume_level = level
-        self.mute_on_off = False
-        self.update_volume_bar()
-        player.audio_set_volume(level * 10)
-
     def sync_timeline(self, song_time, current_ms):
         current_sec = max(0, min(current_ms / 1000, song_time))
-        self.current_min = int(current_sec // 60)
-        self.current_sec = int(current_sec % 60)
-
         progress_ratio = current_sec / song_time if song_time > 0 else 0
-        filled_units = int(progress_ratio * len(self.line_list))
+
+        total_units = progress_ratio * len(self.line_list)
+        filled_units = int(total_units)
+
+        self.current_timeline_part = filled_units
         self.line_list = ["="] * filled_units + ["-"] * (len(self.line_list) - filled_units)
         self.new_timeline = "".join(self.line_list)
 
     def change_vinyl(self):
-        self.current_vinyl_frame = (self.current_vinyl_frame + 1) % len(self.vinyl)
         self.current_vinyl = self.vinyl[self.current_vinyl_frame]
-
-    def update_volume_bar(self):
-        # ponytail: 12-slot field, left-aligned fills, padded space on both sides at any level
-        self.volume_list = [" "] + ["■"] * self.volume_level + [" "] * (11 - self.volume_level)
-
-    def _start_player(self, path):
-        new_player = vlc.MediaPlayer(path)
-        new_player.audio_set_volume(self.volume_level * 10)
-        new_player.play()
-
-        retries = 0
-        while new_player.get_length() <= 0 and retries < 100:
-            if new_player.get_state() in (vlc.State.Error, vlc.State.Ended):
-                break
-            time.sleep(0.1)
-            retries += 1
-
-        new_player.audio_set_volume(self.volume_level * 10)
-        return new_player, max(new_player.get_length() / 1000, 1)
-
-    def _dispose(self, player):
-        try:
-            player.stop()
-            player.release()
-        except Exception:
-            pass
+        if self.current_vinyl_frame < 3:
+            self.current_vinyl_frame += 1
+        else:
+            self.current_vinyl_frame = 0
 
     def import_songs_prompt(self):
         self.disable_cbreak(self.old_settings)
-        self.clear_screen()
-        print("--- IMPORT PLAYLIST ---", flush=True)
+        self.hard_clear_screen()
+        print("+==================================+")
+        print("          IMPORT PLAYLIST           ")
+        print("+==================================+")
 
-        print("Please paste folder path where music is located: ")
+        print("Please paste folder path where music is located: ", end="", flush=True)
         user_directory = input().strip()
-        print("Please provide a name for the playlist: ")
+
+        if user_directory == "`":
+            print("Returning back...")
+            time.sleep(0.5)
+            self.hard_clear_screen()
+            self.enable_cbreak()
+            return
+
+        print("Please provide a name for the playlist: ", end="", flush=True)
         user_playlist_name = input().strip()
 
+        if user_playlist_name == "`":
+            print("Returning back...")
+            self.hard_clear_screen()
+            self.enable_cbreak()
+            time.sleep(0.5)
+            return
+
         if user_directory and user_playlist_name:
-            append_folder_to_songs_path(user_directory, user_playlist_name)
-        time.sleep(1.5)
-        self.clear_screen()
+            self.playlist_added = append_folder_to_songs_path(user_directory, user_playlist_name)
+        else:
+            print("Directory not found returning back...")
+
+        time.sleep(1)
+        self.hard_clear_screen()
         self.enable_cbreak()
+
+    def render(self, song_time, current_song_index, playlist):
+        self.hard_clear_screen()
+
+        if self.help_menu_toggle == True:
+            try:
+                with open("help_keybinds.txt", "r", encoding="utf-8") as help_data:
+                    print(help_data.read())
+            except FileNotFoundError:
+                print("help_keybinds.txt not found.")
+        else:
+            total_min = int(song_time // 60)
+            total_sec = int(song_time % 60)
+            total_time_str = f"{total_min}:{total_sec:02d}"
+
+            lines = [
+                "+=================================================+",
+                "",
+                f"[ {self.current_vinyl} {self.song}]",
+                f"[{self.new_timeline}] [{self.current_min}:{self.current_sec:02d}|{total_time_str}] ",
+                f"[ {self.loop_type_symbol} {self.play_pause} {self.shuffle_symbol} ] [{"".join(self.volume_list)} {self.volume_level * 10}%] [{current_song_index + 1}/{len(playlist)}]",
+                f"[{self.now_real_time}]",
+                "",
+                "+=================================================+",
+                "",
+                "[H] Help menu"
+            ]
+
+            for line in lines:
+                print(f"\x1b[2K\r{line}")
+            print(f"\x1b[{len(lines)}A", end="", flush=True)
+
+    def wait_for_song_length(self, new_player):
+        waited = 0
+        while new_player.get_length() <= 0:
+            if waited >= 5 or new_player.get_state() == vlc.State.Error:
+                return False
+            time.sleep(0.1)
+            waited += 0.1
+        return True
+
+    def reset(self, song_name):
+        self.song = song_name
+        self.current_sec = 0
+        self.current_min = 0
+        self.current_timeline_part = 0
+        self.seconds_for_vinyl = 0
+        self.new_timeline = "-------------------------"
+        self.line_list = ["-"] * 25
+        self.play_pause = "⏸"
+
+    def flush_key_buffer(self):
+        if os.name == "nt":
+            while msvcrt.kbhit():
+                msvcrt.getwch()
+        else:
+            termios.tcflush(sys.stdin, termios.TCIFLUSH)
+
+    def disable_cbreak(self, old_settings):
+        self.flush_key_buffer()
+        if os.name != "nt":
+            termios.tcsetattr(sys.stdin, termios.TCSANOW, old_settings)
+        print("\033[?25h", end="", flush=True)
+
+    def enable_cbreak(self):
+        if os.name != "nt":
+            tty.setcbreak(sys.stdin.fileno())
+        print("\033[?25l", end="", flush=True)
+        self.flush_key_buffer()
 
     def select_playlist(self, player, playlist, song_time, current_index):
         self.disable_cbreak(self.old_settings)
-        self.clear_screen()
+        self.hard_clear_screen()
 
-        try:
-            importlib.reload(songs_path)
-        except Exception as e:
-            print(f"Could not read songs_path.py: {e}")
-            time.sleep(1.5)
-            self.clear_screen()
+        playlists_list = []
+
+        for variable_name in dir(songs_path):
+            if not variable_name.startswith("__"):
+                playlists_list.append(variable_name)
+
+        print("+==================================+")
+        print("         SELECT A PLAYLIST          ")
+        print("+==================================+")
+
+        for index in range(0, len(playlists_list)):
+            print(f"{index}. {playlists_list[index]}")
+
+        print("\nPlease enter the number next to the playlist you want to play: ")
+        playlist_index = input("").strip()
+
+        if playlist_index == "`":
+            print("Returning back...")
+            time.sleep(0.5)
+            self.hard_clear_screen()
             self.enable_cbreak()
             return player, song_time, playlist, current_index
 
-        playlists = get_playlists()
-
-        if not playlists:
-            print("No playlists found. Press C to import one.")
-            time.sleep(1.5)
-            self.clear_screen()
-            self.enable_cbreak()
-            return player, song_time, playlist, current_index
-
-        names = list(playlists)
-
-        print("\n         SELECT A PLAYLIST          \n")
-        for index, name in enumerate(names):
-            tag = "" if any(os.path.isfile(s) for s in playlists[name]) else "  [missing]"
-            print(f"{index}. {name}{tag}")
-
-        print("Enter number: ", end="", flush=True)
-        playlist_index = input().strip()
-
-        if not playlist_index.isdigit() or int(playlist_index) >= len(names):
+        if not playlist_index.isdigit() or int(playlist_index) >= len(playlists_list):
             print("Invalid selection. Returning to player...")
-            time.sleep(1)
-            self.clear_screen()
+            time.sleep(0.5)
+            self.hard_clear_screen()
             self.enable_cbreak()
             return player, song_time, playlist, current_index
 
-        new_playlist = playlists[names[int(playlist_index)]]
-        if not new_playlist or not any(os.path.isfile(s) for s in new_playlist):
-            print(f"Playlist '{names[int(playlist_index)]}' has no files on this computer.")
-            time.sleep(1.5)
-            self.clear_screen()
+        if not getattr(songs_path, playlists_list[int(playlist_index)]):
+            print("That playlist is empty. Returning to player...")
+            time.sleep(0.5)
+            self.hard_clear_screen()
             self.enable_cbreak()
             return player, song_time, playlist, current_index
 
-        self._dispose(player)
-        self.shuffled_song_list.clear()
+        player.stop()
 
-        current_song = new_playlist[0]
+        self.name_of_playlist = playlists_list[int(playlist_index)]
+        new_playlist = getattr(songs_path, self.name_of_playlist)
+        current_song_index = 0
+        current_song = new_playlist[current_song_index]
 
-        new_player, new_song_time = self._start_player(current_song)
-        self.reset(_song_name(current_song))
+        new_song_name = os.path.basename(current_song)
+        new_player = vlc.MediaPlayer(current_song)
 
-        self.clear_screen()
+        new_player.audio_set_volume(self.volume_level * 10)
+        new_player.play()
+
+        if not self.wait_for_song_length(new_player):
+            new_song_name = new_song_name + " (could not load)"
+
+        new_song_time = max(0, new_player.get_length()) / 1000
+        self.reset(new_song_name)
+
+        self.hard_clear_screen()
         self.enable_cbreak()
 
         return new_player, new_song_time, new_playlist, 0
 
     def select_songs(self, player, playlist, song_time, current_index):
-        self.clear_screen()
+        self.hard_clear_screen()
 
-        start = 0
-        end = 10
-        select_index = 0
-        temp_select_list = [_song_name(song) for song in playlist]
-        needs_redraw = True
+        start = current_index - 5
+        end = current_index + 5
+        select_index = current_index
+        temp_select_list = []
+        for song in playlist:
+            temp_select_list.append(os.path.basename(song))
 
         while True:
-            total = len(temp_select_list)
-            start = max(0, min(start, max(0, total - 10)))
-            end = min(start + 10, total)
+            self.hard_clear_screen()
 
-            if needs_redraw:
-                out = "\033[H"
-                for line_index in range(start, end):
-                    song_name = temp_select_list[line_index]
-                    if line_index == select_index:
-                        out += f"\033[2K\r> {song_name} <\n"
-                    else:
-                        out += f"\033[2K\r  {song_name}  \n"
-                out += "\033[2K\r   [Up/N] Up | [Down/M] Down | [Enter] Play | [Q] Back\n"
-                out += "\033[J"
-                sys.stdout.write(out)
-                sys.stdout.flush()
-                needs_redraw = False
+            if start >= len(temp_select_list) - 10:
+                start = max(0, len(temp_select_list) - 10)
+            elif start <= 0:
+                start = 0
+
+            if end >= len(temp_select_list):
+                end = len(temp_select_list)
+            elif end <= 10:
+                end = min(10, len(temp_select_list))
+
+            safe_end = min(end, len(temp_select_list))
+
+            for line_index in range(start, safe_end):
+                song_name = temp_select_list[line_index]
+
+                if line_index == select_index:
+                    print(f"\x1b[2K\r        > {song_name} <")
+                else:
+                    print(f"\x1b[2K\r  {song_name}  ")
+            print("")
+            print("[Up/N] Up | [Down/M] Down | [Enter] Play | [Q] Back")
+            print(f"\x1b[{safe_end - start}A", end="", flush=True)
+            print(f"")
 
             key = self.check_key_presses()
 
+            if key == "s":
+                pass
+
             if key == 'q':
+                self.click_sound.play()
                 break
 
-            if key in ('m', 'DOWN'):
+            if key == 'm':
+                self.click_sound.play()
                 if select_index < len(temp_select_list) - 1:
                     select_index += 1
-                    needs_redraw = True
                     if start < len(temp_select_list) - 10 and select_index > start:
                         start += 1
                         end += 1
 
-            if key in ('n', 'UP'):
+            if key == 'n':
+                self.click_sound.play()
                 if select_index > 0:
                     select_index -= 1
-                    needs_redraw = True
                     if select_index < start:
                         start -= 1
                         end -= 1
 
             if key and len(key) == 1 and ord(key) in (10, 13):
-                self._dispose(player)
-                self.click_sound.play()
+                self.hard_clear_screen()
+                player, song_time, select_index = self.song_player(player, select_index, playlist)
+                return player, song_time, playlist, select_index
 
-                selected_song_path = playlist[select_index]
-                new_song_name = temp_select_list[select_index]
+            time.sleep(0.1)
 
-                new_player, new_song_time = self._start_player(selected_song_path)
-                self.reset(new_song_name)
-
-                self.clear_screen()
-                return new_player, new_song_time, playlist, select_index
-
-            time.sleep(0.05)
-
-        self.clear_screen()
+        self.hard_clear_screen()
         return player, song_time, playlist, current_index
 
-    def render(self, song_time):
-        total_min = int(song_time // 60)
-        total_sec = int(song_time % 60)
-        total_time_str = f"{total_min:02d}:{total_sec:02d}"
-        curr_time_str = f"{self.current_min:02d}:{self.current_sec:02d}"
 
-        display_name = truncate(self.song, 28)
-        border = "+" + "-" * BOX_INNER_WIDTH + "+"
+    def select_song_list(self, song_paths, multi, title, select_index=0):
+        self.hard_clear_screen()
 
-        lines = [
-            border,
-            box_row("  AUDIO DECK", f"{self.now_real_time}  "),
-            box_row(f"  Track: {display_name}", f"Vinyl: [{self.current_vinyl}]  "),
-            box_row(f"  [{self.new_timeline}]", f"{curr_time_str} / {total_time_str}  "),
-            box_row(f"[{self.mode}|{self.id}]"),
-            box_row(f"  Vol:   [{''.join(self.volume_list)}]  {self.volume_level * 10:>3}%",
-                    f"Mode: [ {self.loop_type_symbol} {self.play_pause} {self.shuffle_symbol} ]  "),
-            border,
-            "   [Space] Play/Pause | [M] Next | [N] Prev | [X] List | [Q] Quit",
-            "   [A/D] Seek | [O/P] Volume | [0] Mute | [S] Shuffle | [E] Repeat | [C] Import | [Z] Songs",
-        ]
+        temp_select_list = []
+        for song in song_paths:
+            temp_select_list.append(os.path.basename(song))
 
-        out = "\033[H" + "".join(f"\033[2K\r{line}\n" for line in lines) + "\033[J"
-        sys.stdout.write(out)
-        sys.stdout.flush()
+        chosen_list = []
 
-    def reset(self, song_name):
-        self.clear_screen()
-        self.song = song_name
-        self.current_sec = 0
-        self.current_min = 0
-        self.new_timeline = "-" * 25
-        self.line_list = ["-"] * 25
-        self.play_pause = "⏸"
-        self.last_vinyl_time = time.monotonic()
+        while True:
+            self.hard_clear_screen()
 
-    def disable_cbreak(self, old_settings):
-        if IS_WIN:
-            print("\033[?25h", end="", flush=True)
+            start = max(0, min(select_index - 5, len(temp_select_list) - 10))
+            end = min(start + 10, len(temp_select_list))
+
+            print(f"\x1b[2K\r{title}")
+            print("")
+
+            for line_index in range(start, end):
+                song_name = temp_select_list[line_index]
+
+                if multi:
+                    if line_index in chosen_list:
+                        song_name = f"[x] {song_name}"
+                    else:
+                        song_name = f"[ ] {song_name}"
+
+                if line_index == select_index:
+                    print(f"\x1b[2K\r        > {song_name} <")
+                else:
+                    print(f"\x1b[2K\r  {song_name}  ")
+            print("")
+
+            if multi:
+                print(f"Selected: {len(chosen_list)}")
+                print("[N] Up | [M] Down | [Enter] Mark/Unmark | [F] Finish | [Q] Back")
+            else:
+                print("[N] Up | [M] Down | [Enter] Select | [Q] Back")
+
+            key = self.check_key_presses()
+
+            if key == 'q':
+                self.click_sound.play()
+                return None
+
+            if key == 'm':
+                self.click_sound.play()
+                if select_index < len(temp_select_list) - 1:
+                    select_index += 1
+
+            if key == 'n':
+                self.click_sound.play()
+                if select_index > 0:
+                    select_index -= 1
+
+            if key and len(key) == 1 and ord(key) in (10, 13):
+                self.click_sound.play()
+                if multi:
+                    if select_index in chosen_list:
+                        chosen_list.remove(select_index)
+                    else:
+                        chosen_list.append(select_index)
+                else:
+                    return [select_index]
+
+            if key == 'f' and multi:
+                if chosen_list:
+                    self.click_sound.play()
+                    return chosen_list
+                else:
+                    print("Please select at least one song first.")
+                    time.sleep(1)
+
+            time.sleep(0.1)
+
+    def create_virtual_playlist(self):
+        self.disable_cbreak(self.old_settings)
+        self.hard_clear_screen()
+        print("+==================================+")
+        print("       NEW VIRTUAL PLAYLIST         ")
+        print("+==================================+")
+
+        print("Please provide a name for the playlist: ", end="", flush=True)
+        user_playlist_name = input().strip()
+
+        if user_playlist_name == "`":
+            print("Returning back...")
+            time.sleep(0.5)
+            self.hard_clear_screen()
+            self.enable_cbreak()
             return
-        termios.tcflush(sys.stdin, termios.TCIFLUSH)
-        termios.tcsetattr(sys.stdin, termios.TCSANOW, old_settings)
-        print("\033[?25h", end="", flush=True)
 
-    def enable_cbreak(self):
-        if IS_WIN:
-            print("\033[?25l", end="", flush=True)
+        if not is_valid_playlist_name(user_playlist_name):
+            print("Playlist name can only use letters, numbers and underscores, and can't start with a number.")
+            time.sleep(1.5)
+            self.hard_clear_screen()
+            self.enable_cbreak()
             return
-        tty.setcbreak(sys.stdin.fileno())
-        print("\033[?25l", end="", flush=True)
-        termios.tcflush(sys.stdin, termios.TCIFLUSH)
+
+        if user_playlist_name in get_playlists():
+            print("this name is already taken please try something other")
+            time.sleep(1.5)
+            self.hard_clear_screen()
+            self.enable_cbreak()
+            return
+
+        all_songs = []
+        for playlist_name in get_playlists():
+            for song in getattr(songs_path, playlist_name):
+                if song not in all_songs:
+                    all_songs.append(song)
+
+        self.enable_cbreak()
+        chosen_list = self.select_song_list(all_songs, True, f"SELECT SONGS FOR '{user_playlist_name}'")
+
+        self.hard_clear_screen()
+        if chosen_list is not None:
+            chosen_songs = []
+            for song_index in chosen_list:
+                chosen_songs.append(all_songs[song_index])
+
+            create_virtual_playlist_in_songs_path(user_playlist_name, chosen_songs)
+            time.sleep(1)
+            self.hard_clear_screen()
+
+    def force_import_loop(self):
+        while get_playlists() == []:
+            self.hard_clear_screen()
+            print("+==================================+")
+            print("          IMPORT PLAYLIST           ")
+            print("+==================================+")
+            print("No playlists left. Import a folder to continue.")
+
+            print("Please paste folder path where music is located: ", end="", flush=True)
+            user_directory = input().strip()
+
+            print("Please provide a name for the playlist: ", end="", flush=True)
+            user_playlist_name = input().strip()
+
+            if user_directory and user_playlist_name:
+                self.playlist_added = append_folder_to_songs_path(user_directory, user_playlist_name)
+            else:
+                print("Directory not found try again...")
+
+            time.sleep(1)
+
+        self.hard_clear_screen()
+
+    def play_playlist(self, name_of_playlist):
+        self.name_of_playlist = name_of_playlist
+        new_playlist = getattr(songs_path, name_of_playlist)
+        current_song = new_playlist[0]
+
+        new_song_name = os.path.basename(current_song)
+        new_player = vlc.MediaPlayer(current_song)
+
+        new_player.audio_set_volume(self.volume_level * 10)
+        new_player.play()
+
+        if not self.wait_for_song_length(new_player):
+            new_song_name = new_song_name + " (could not load)"
+
+        new_song_time = max(0, new_player.get_length()) / 1000
+        self.reset(new_song_name)
+
+        return new_player, new_song_time, new_playlist, 0
+
+    def delete_playlist_prompt(self, player, playlist, song_time, current_index):
+        self.disable_cbreak(self.old_settings)
+        self.hard_clear_screen()
+
+        playlists_list = get_playlists()
+
+        print("+==================================+")
+        print("          DELETE A PLAYLIST         ")
+        print("+==================================+")
+
+        for index in range(0, len(playlists_list)):
+            print(f"{index}. {playlists_list[index]}")
+
+        print("\nPlease enter the number next to the playlist you want to delete: ")
+        playlist_index = input("").strip()
+
+        if playlist_index == "`":
+            print("Returning back...")
+            time.sleep(0.5)
+            self.hard_clear_screen()
+            self.enable_cbreak()
+            return player, song_time, playlist, current_index
+
+        if not playlist_index.isdigit() or int(playlist_index) >= len(playlists_list):
+            print("Invalid selection. Returning to player...")
+            time.sleep(0.5)
+            self.hard_clear_screen()
+            self.enable_cbreak()
+            return player, song_time, playlist, current_index
+
+        delete_name = playlists_list[int(playlist_index)]
+
+        print(f"Delete playlist '{delete_name}'? Your music files will not be deleted.")
+        answer = input("Type y to confirm: ").strip().lower()
+
+        if answer != "y":
+            print("Returning back...")
+            time.sleep(0.5)
+            self.hard_clear_screen()
+            self.enable_cbreak()
+            return player, song_time, playlist, current_index
+
+        if not delete_playlist_from_songs_path(delete_name):
+            time.sleep(1.5)
+            self.hard_clear_screen()
+            self.enable_cbreak()
+            return player, song_time, playlist, current_index
+
+        time.sleep(1)
+        if delete_name == self.name_of_playlist:
+            player.stop()
+
+            if get_playlists() == []:
+                with open("last_played.json", "w") as user_save:
+                    json.dump({}, user_save, indent=4)
+
+                self.force_import_loop()
+                player, song_time, playlist, current_index = self.play_playlist(get_playlists()[0])
+                self.hard_clear_screen()
+                self.enable_cbreak()
+            else:
+                while self.name_of_playlist == delete_name:
+                    player, song_time, playlist, current_index = self.select_playlist(player, playlist, song_time,
+                                                                                      current_index)
+
+            self.shuffled_song_list = []
+            self.current_index = current_index
+            self.save_data_to_last_play()
+            return player, song_time, playlist, current_index
+
+        self.hard_clear_screen()
+        self.enable_cbreak()
+        return player, song_time, playlist, current_index
+
+    def delete_song_prompt(self, player, playlist, song_time, current_index):
+        chosen_list = self.select_song_list(playlist, False, f"DELETE A SONG FROM '{self.name_of_playlist}'", current_index)
+
+        if chosen_list is None:
+            self.hard_clear_screen()
+            return player, song_time, playlist, current_index
+
+        delete_index = chosen_list[0]
+        song_name = os.path.basename(playlist[delete_index])
+
+        self.disable_cbreak(self.old_settings)
+        self.hard_clear_screen()
+        print("+==================================+")
+        print("            DELETE SONG             ")
+        print("+==================================+")
+
+        print(f"Remove '{song_name}' from '{self.name_of_playlist}'? The music file will not be deleted.")
+        answer = input("Type y to confirm: ").strip().lower()
+
+        if answer != "y":
+            print("Returning back...")
+            time.sleep(0.5)
+            self.hard_clear_screen()
+            self.enable_cbreak()
+            return player, song_time, playlist, current_index
+
+        if not delete_song_from_playlist(self.name_of_playlist, delete_index):
+            time.sleep(1.5)
+            self.hard_clear_screen()
+            self.enable_cbreak()
+            return player, song_time, playlist, current_index
+
+        new_playlist = getattr(songs_path, self.name_of_playlist)
+        self.shuffled_song_list = []
+
+        if delete_index < current_index:
+            current_index -= 1
+        elif delete_index == current_index:
+            current_index = current_index % len(new_playlist)
+            player, song_time, current_index = self.song_player(player, current_index, new_playlist)
+
+        time.sleep(1)
+        self.hard_clear_screen()
+        self.enable_cbreak()
+        return player, song_time, new_playlist, current_index
+
+    def import_single_song_prompt(self, playlist):
+        self.disable_cbreak(self.old_settings)
+        self.hard_clear_screen()
+        print("+==================================+")
+        print("            IMPORT SONG             ")
+        print("+==================================+")
+
+        print(f"Adding to playlist: {self.name_of_playlist}")
+        print("Please paste the path of the song file: ", end="", flush=True)
+        user_song_path = input().strip()
+
+        if user_song_path == "`":
+            print("Returning back...")
+            time.sleep(0.5)
+            self.hard_clear_screen()
+            self.enable_cbreak()
+            return playlist
+
+        if user_song_path:
+            if add_song_to_playlist(self.name_of_playlist, user_song_path):
+                playlist = getattr(songs_path, self.name_of_playlist)
+        else:
+            print("No path given returning back...")
+
+        time.sleep(1)
+        self.hard_clear_screen()
+        self.enable_cbreak()
+        return playlist
 
     def next_song(self, player, playlist, current_index, shuffle):
         if shuffle:
             self.shuffled_song_list.append(current_index)
-            del self.shuffled_song_list[:-200]
-            next_index = random.randrange(len(playlist))
-            while len(playlist) > 1 and next_index == current_index:
-                next_index = random.randrange(len(playlist))
+            next_index = random.randint(0, len(playlist) - 1)
         else:
             next_index = (current_index + 1) % len(playlist)
 
-        self._dispose(player)
-        self.click_sound.play()
+        return self.song_player(player, next_index, playlist)
 
-        next_song_path = playlist[next_index]
-        new_player, new_song_time = self._start_player(next_song_path)
-        self.reset(_song_name(next_song_path))
-        return new_player, new_song_time, next_index
 
     def previous_song(self, player, playlist, current_index, shuffle):
-        if shuffle and self.shuffled_song_list:
-            previous_index = self.shuffled_song_list.pop() % len(playlist)
+        if shuffle:
+            if self.shuffled_song_list != []:
+                previous_index = self.shuffled_song_list.pop(-1)
+            else:
+                previous_index = (current_index - 1) % len(playlist)
         else:
             previous_index = (current_index - 1) % len(playlist)
+        return self.song_player(player, previous_index, playlist)
 
-        self._dispose(player)
-        self.click_sound.play()
-
-        previous_song_path = playlist[previous_index]
-        new_player, new_song_time = self._start_player(previous_song_path)
-        self.reset(_song_name(previous_song_path))
-        return new_player, new_song_time, previous_index
 
     def loop(self, player, playlist, current_index):
-        self._dispose(player)
-        self.click_sound.play()
+        return self.song_player(player, current_index, playlist)
 
-        current_song_path = playlist[current_index]
-        new_player, new_song_time = self._start_player(current_song_path)
-        self.reset(_song_name(current_song_path))
-        return new_player, new_song_time, current_index
+
+    def update_volume_bar(self):
+        self.volume_list = ["⏹"] * self.volume_level + [" "] * (10 - self.volume_level)
+
+    def hard_clear_screen(self):
+        sys.stdout.write("\033[2J\033[3J\033[H\033[0m")
+        sys.stdout.flush()
+
+    def save_data_to_last_play(self):
+        data_to_save = {
+            "self.volume_level": self.volume_level,
+            "playlist": self.name_of_playlist,
+            "index_of_song": self.current_index,
+            "shuffle": self.shuffle,
+            "auto": self.loop_type
+        }
+        with open("last_played.json", "w") as user_save:
+            json.dump(data_to_save, user_save, indent=4)
+
+    def song_player(self, player, index, playlist ):
+
+        player.stop()
+        self.click_sound.play()
+        if index >= len(playlist):
+            index = 0
+        song_path = playlist[index]
+
+        song_name = os.path.basename(song_path)
+
+        new_player = vlc.MediaPlayer(song_path)
+        new_player.audio_set_volume(self.volume_level * 10)
+        new_player.play()
+
+        if not self.wait_for_song_length(new_player):
+            song_name = song_name + " (could not load)"
+
+        new_song_time = max(0, new_player.get_length()) / 1000
+        self.reset(song_name)
+
+        return new_player, new_song_time, index

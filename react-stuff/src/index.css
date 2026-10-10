@@ -41,34 +41,34 @@ p {
   border: 0;
   padding-bottom: 2em;
   color: #f5f0eb;
-  display: flex; 
+  display: flex;
   justify-content: center;
-  align-items: center; 
+  align-items: center;
 }
 
 /* primary hero viewport container */
 #column {
-  background: #181513; 
+  background: #181513;
   padding: 10px 0;
-  width: 100vw; 
-  height: 100vh; 
-  position: relative; 
-  overflow: hidden; 
-  display: flex; 
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center; 
+  align-items: center;
 }
 
 /* full page info sections */
 .biggie {
-  text-align: center; 
+  text-align: center;
   width: 100%;
-  height: 100vh; 
-  display: flex; 
+  height: 100vh;
+  display: flex;
   flex-direction: column;
-  align-items: center; 
-  justify-content: center; 
+  align-items: center;
+  justify-content: center;
 }
 
 .stack {
@@ -83,23 +83,23 @@ p {
 /* decorative icon styles */
 .small {
   transform: rotate(180deg);
-  width: 60px; 
+  width: 60px;
   height: auto;
 }
 
 .ugh {
   padding: 30px;
-  width: 300px; 
-  height: 300px; 
+  width: 300px;
+  height: 300px;
 }
 
 /* canvas background layer positioning for falling notes */
 .animation {
-  position: absolute; 
-  z-index: 1; 
-  inset: 0; 
-  overflow: hidden; 
-  display: flex; 
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  display: flex;
   justify-content: center;
   align-items: center;
   pointer-events: none;
@@ -136,12 +136,12 @@ p {
 /* front hero content box */
 .content {
   gap: 8em;
-  position: relative; 
-  z-index: 2; 
-  background: linear-gradient(to bottom, rgba(24, 21, 19, 0.9), rgba(24, 21, 19, 0.5));
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(to bottom, rgba(24, 21, 19, 0.45), rgba(24, 21, 19, 0.15));
   width: 100%;
   height: 100%;
-  display: flex; 
+  display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
@@ -149,7 +149,7 @@ p {
 
 /* custom retro font definition */
 @font-face {
-  font-family: "terminal"; 
+  font-family: "terminal";
   src: url("./assets/terminal.ttf") format('truetype');
 }
 
@@ -160,18 +160,18 @@ p {
 }
 
 .mini {
-  color: #e6c5a8; 
+  color: #e6c5a8;
   font-family: terminal;
-  font-weight: bold; 
+  font-weight: bold;
   font-size: 26px;
 }
 
 /* top navigation bar properties */
 .nav {
-  background: #181513; 
+  background: #181513;
   padding: 18px 48px;
   border-bottom: 2px solid #3d3229;
-  display: flex; 
+  display: flex;
   align-items: center;
   justify-content: flex-end;
   box-sizing: border-box;
@@ -184,19 +184,19 @@ p {
 
 /* navigation links list */
 .list {
-  margin: 0; 
-  padding: 0; 
+  margin: 0;
+  padding: 0;
   list-style: none;
-  display: flex; 
+  display: flex;
   gap: 2.5rem;
   align-items: center;
 }
 
 .list li a {
-  text-decoration: none; 
-  color: #d4c5b9; 
+  text-decoration: none;
+  color: #d4c5b9;
   font-family: terminal;
-  font-weight: bold; 
+  font-weight: bold;
   font-size: 22px;
 }
 
@@ -205,7 +205,7 @@ p {
 }
 
 .flex_row {
-  display: flex; 
+  display: flex;
   gap: 3em;
   padding-top: 2em;
   justify-content: center;

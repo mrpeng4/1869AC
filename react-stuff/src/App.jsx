@@ -28,7 +28,7 @@ function Topset() {
 
 export default function App() {
   return(
-    <BrowserRouter>
+    <BrowserRouter basename="/1869AC">
       <Navbar/>
       <Topset/>
     </BrowserRouter>

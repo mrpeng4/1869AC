@@ -1,10 +1,11 @@
-import { useState , useEffect, useRef} from 'react'
-import {Routes, Route, useNavigate} from 'react-router-dom'
-const arrayOfStuff = ["1","8","6","9","A","C"]
-//IMAGES
+import { useEffect, useRef } from 'react'
+import './index.css'
+import Animation from './animation.jsx'
+import { motion } from 'framer-motion'
+
+// static image assets for sections and decorative grid
 import left from "./assets/left.PNG"
 import right from "./assets/right.PNG"
-import cd from "./assets/cd.PNG"
 import chest from "./assets/chest.PNG"
 import couch from "./assets/couch.PNG"
 import cover from "./assets/cover.PNG"
@@ -32,123 +33,144 @@ import wallclosed from "./assets/wall-closed.PNG"
 import wallcloser from "./assets/wall-closer.PNG"
 import wall from "./assets/wall.PNG"
 
-const all = [wall,wallcloser,wallclosed,wallblank,wall3,wall2,greywall2,greyfloor3,greyfloor1,floor4,floor3,floor2,floor1,grate4,grate3,grate2,grate1,tank,locker,human,human2,fish,fish3,cover, couch, chest]
+// characters for the main title animation
+var letters = ["1", "8", "6", "9", "A", "C"]
 
-import './index.css'
-import Animation from './animation.jsx'
-import { motion } from 'framer-motion'
-
-const mainSettings = {
-  initial: {opacity: 1, y: 200}, 
-  whileInView: {opacity: 1, y: 0}, 
-  viewport: {once: true, amount: 0.1}, //how much before
-  transition: {duration: 0.8, ease: "ease-in-out"}
-}
-const scrollSettings = {
-  initial: {opacity: 0, y: 20}, 
-  whileInView: {opacity: 1, y: 0}, 
-  viewport: {once: false, amount: 0.2}, //how much before
-  transition: {duration: 0.8, ease: "ease-in-out"}
-}
-
-const cursorSettings = {
-    initial: {opacity: 0, y: 0}, 
-    whileInView: {opacity: [0,1,0], y: 0}, 
-    viewport: {once: false, amount: 0}, //how much before
-    transition: {delay: 1.2 + 0.1*arrayOfStuff.length}
-};
+// asset list for the bottom randomized deco gallery
+var icons = [wall, wallcloser, wallclosed, wallblank, wall3, wall2, greywall2, greyfloor3, greyfloor1, floor4, floor3, floor2, floor1, grate4, grate3, grate2, grate1, tank, locker, human, human2, fish, fish3, cover, couch, chest]
 
 export default function Home() {
-  const target = useRef(null);
-  useEffect(() => {
-    if(target.current){
-      target.current.scrollIntoView({ //special to start where i want
-        behavior: "instant",  //smooth auto
-        block: "start" //alligns to the top!
-      })
+  // DOM references for instant scroll and section navigation
+  const topRef = useRef(null)
+  const nextSection = useRef(null)
+
+  // reset window position to top on initial page mount
+  useEffect(function() {
+    if (topRef.current) {
+      topRef.current.scrollIntoView({ behavior: "instant", block: "start" })
     }
   }, [])
-  const Navigate = useNavigate()
+
+  // smooth scroll handler triggered by the CTA button
+  function scrollPage() {
+    if (nextSection.current) {
+      nextSection.current.scrollIntoView({ behavior: "smooth" })
+    }
+  }
+
   return (
-    <div ref = {target}>
-      <motion.div id = "column" {...mainSettings}>
-        <div className = "content">
-          <div className = "row">
-            {arrayOfStuff.map((letter,index)=> {
-              const typeSettings = {
-                initial: {opacity: 0, y: 0}, 
-                whileInView: {opacity: 1, y: 0}, 
-                viewport: {once: false, amount: 0}, //how much before
-                transition: {duration: 0.2, delay: 0.9+ (0.1*index)}
-              };
-              return(
-                <>
-                  <motion.span key = {index} {...typeSettings} style = {{display: "inline-block"}}>
-                    {letter}
-                  </motion.span>
-                </>
-              );
+    <div ref={topRef}>
+      {/* primary viewport hero section */}
+      <motion.div
+        id="column"
+        initial={{ opacity: 1, y: 150 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.1 }}
+        transition={{ duration: 0.7 }}
+      >
+        <div className="content">
+          <div className="row">
+            {/* render title characters with staggered entrance delay */}
+            {letters.map(function(char, idx) {
+              return (
+                <motion.span
+                  key={idx}
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: false }}
+                  transition={{ duration: 0.2, delay: 0.3 + (idx * 0.1) }}
+                  style={{ display: "inline-block" }}
+                >
+                  {char}
+                </motion.span>
+              )
             })}
-            <motion.span {...cursorSettings} className = "flicker"> | </motion.span>
-            <img id = "bounce" src = {cd} />
           </div>
-          <div className = "mini">
-            <p > The offline and online music player! </p>
-            <div className = "flex_row">
-              <button style = {{color: "white", backgroundColor: "MediumSeaGreen", transform: "scale(1.5)"}} onClick = {() => Navigate("/login")}> Let's go! </button>
-              <button style = {{color: "white", backgroundColor: "DarkGreen", transform: "scale(1.5)"}} onClick = {() => Navigate("/features")}> View All Current Features </button>
+
+          <div className="mini">
+            <p> The offline and online music player! </p>
+            <div className="flex_row">
+              {/* navigate down to product info */}
+              <button className="lets-go-btn" onClick={scrollPage}>
+                Let's go!
+              </button>
             </div>
           </div>
-          </div>
-        <Animation/>
-      </motion.div>
-      <motion.div className = "biggie" {...scrollSettings}>
-        <div className = "row reverse">
-          <div>
-            <h2 className = "stack"> Currently a work in progress! </h2>
-          </div>
-            <img className = "ugh"  src = {left} />
         </div>
+
+        {/* background animation component */}
+        <Animation />
       </motion.div>
 
-      <motion.div className = "biggie" {...scrollSettings}>
-        <div className = "row">
-          <div>
-            <h2 className = "stack"> Right now the app is only avaiable offline on your terminal! It's compatible with Mac, Linux, and Windows!</h2>
+      {/* project info, requirements, and setup guide */}
+      <div ref={nextSection}>
+        <motion.div
+          className="biggie"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false, amount: 0.2 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="row reverse">
+            <div>
+              <h2 className="stack"> Currently a work in progress! </h2>
+            </div>
+            <img className="ugh" src={left} />
           </div>
-          <img className = "ugh" src = {right} />
-        </div>
-      </motion.div>
+        </motion.div>
 
-      <motion.div className = "biggie" {...scrollSettings}>
-        <div className = "row reverse">
-          <div>
-            <h2 className = "stack"> You can install the application by going to this <a href = "https://github.com/mrpeng4/1869AC">repository</a> and cloning it!</h2>
+        <motion.div
+          className="biggie"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false, amount: 0.2 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="row">
+            <div>
+              <h2 className="stack"> Right now the app is only avaiable offline on your terminal! It's compatible with Mac, Linux, and Windows! </h2>
+            </div>
+            <img className="ugh" src={right} />
           </div>
-          <img className = "ugh"  src = {left} />
-        </div>
-      </motion.div>
+        </motion.div>
 
-      <motion.div className = "biggie" {...scrollSettings}>
-        <div className = "row">
-          <div>
-            <h2 className = "stack"> You also need to have python and VLC media player installed!</h2>
+        <motion.div
+          className="biggie"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false, amount: 0.2 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="row reverse">
+            <div>
+              <h2 className="stack"> You can install the application by going to this <a href="https://github.com/mrpeng4/1869AC">repository</a> and cloning it! </h2>
+            </div>
+            <img className="ugh" src={left} />
           </div>
-          <img className = "ugh"  src = {right} />
-        </div>
-      </motion.div>
+        </motion.div>
 
+        <motion.div
+          className="biggie"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false, amount: 0.2 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="row">
+            <div>
+              <h2 className="stack"> You also need to have python and VLC media player installed! </h2>
+            </div>
+            <img className="ugh" src={right} />
+          </div>
+        </motion.div>
+      </div>
+
+      {/* randomized decorative sprite footer */}
       <div>
-        {[...all].sort(() => Math.random() - 0.5)
-        .map((img,index) => (
-          <img
-            className = "small"
-            key = {index}
-            src = {img}
-          />
-        ))}
+        {icons.sort(function() { return Math.random() - 0.5 }).map(function(item, index) {
+          return <img className="small" key={index} src={item} />
+        })}
       </div>
     </div>
   )
 }
-

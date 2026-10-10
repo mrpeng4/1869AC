@@ -50,7 +50,7 @@ p {
 #column {
   background: #181513;
   padding: 10px 0;
-  width: 100vw;
+  width: 100%;
   height: 100vh;
   position: relative;
   overflow: hidden;
